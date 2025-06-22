@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Sun, Moon, Type, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays } from 'lucide-react';
 
+// Carregando fonte Gelasio do Google Fonts
+const loadGelasioFont = () => {
+  const link = document.createElement('link');
+  link.href = 'https://fonts.googleapis.com/css2?family=Gelasio:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap';
+  link.rel = 'stylesheet';
+  if (!document.querySelector(`link[href="${link.href}"]`)) {
+    document.head.appendChild(link);
+  }
+};
+
 const LiturgiaApp = () => {
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedDate, setSelectedDate] = useState('');
@@ -370,12 +380,22 @@ const LiturgiaApp = () => {
   };
 
   const getSeasonColor = (season) => {
-    switch (season) {
-      case 'Advento/Natal': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'Quaresma': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'Páscoa': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-green-100 text-green-800 border-green-200';
-    }
+    const baseColors = {
+      'Advento/Natal': darkMode 
+        ? 'bg-purple-800/40 text-purple-200 border-purple-600/50' 
+        : 'bg-purple-100 text-purple-800 border-purple-200',
+      'Quaresma': darkMode 
+        ? 'bg-purple-800/40 text-purple-200 border-purple-600/50' 
+        : 'bg-purple-100 text-purple-800 border-purple-200',
+      'Páscoa': darkMode 
+        ? 'bg-yellow-700/40 text-yellow-200 border-yellow-600/50' 
+        : 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      'Tempo Comum': darkMode 
+        ? 'bg-green-800/40 text-green-200 border-green-600/50' 
+        : 'bg-green-100 text-green-800 border-green-200'
+    };
+    
+    return baseColors[season] || baseColors['Tempo Comum'];
   };
 
   // Fetch liturgy data
@@ -403,6 +423,7 @@ const LiturgiaApp = () => {
 
   useEffect(() => {
     fetchLiturgia(currentDate);
+    loadGelasioFont(); // Carrega a fonte Gelasio
   }, [currentDate, fetchLiturgia]);
 
   const fontSizeClasses = {
@@ -482,7 +503,7 @@ const LiturgiaApp = () => {
           <div key={index} className={`mb-6 p-6 rounded-2xl border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} shadow-lg`}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <h3 className={`text-xl font-bold ${getCurrentColor().text}`}>
+                <h3 className={`text-xl font-bold ${getCurrentColor().text}`} style={{ fontFamily: 'Gelasio, serif' }}>
                   {reading.titulo || sectionName}
                 </h3>
                 {readings.length > 1 && (
@@ -516,21 +537,21 @@ const LiturgiaApp = () => {
             </div>
             
             {reading.referencia && (
-              <p className={`text-sm font-medium mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'} italic`}>
+              <p className={`text-sm font-medium mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'} italic`} style={{ fontFamily: 'Gelasio, serif' }}>
                 {reading.referencia}
               </p>
             )}
 
             {reading.refrao && (
               <div className={`p-4 rounded-xl mb-4 border-2 ${getCurrentColor().accent} ${getCurrentColor().text}`}>
-                <p className="font-semibold">
+                <p className="font-semibold" style={{ fontFamily: 'Gelasio, serif' }}>
                   <strong>R/. </strong>{reading.refrao}
                 </p>
               </div>
             )}
 
             {reading.texto && (
-              <div className={`${fontSizeClasses[fontSize]} leading-relaxed ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
+              <div className={`${fontSizeClasses[fontSize]} leading-relaxed ${darkMode ? 'text-gray-100' : 'text-gray-800'}`} style={{ fontFamily: 'Gelasio, serif' }}>
                 {formatTextWithVerses(reading.texto)}
               </div>
             )}
@@ -545,13 +566,13 @@ const LiturgiaApp = () => {
 
     return (
       <div className="mb-8">
-        <h3 className={`text-xl font-bold mb-4 ${getCurrentColor().text}`}>Orações</h3>
+        <h3 className={`text-xl font-bold mb-4 ${getCurrentColor().text}`} style={{ fontFamily: 'Gelasio, serif' }}>Orações</h3>
         {Object.entries(liturgiaData.oracoes).map(([key, value]) => {
           if (key === 'extras') {
             return value.map((extra, index) => (
               <div key={`extra-${index}`} className={`mb-4 p-4 rounded-xl border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className={`font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  <h4 className={`font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} style={{ fontFamily: 'Gelasio, serif' }}>
                     {extra.titulo}
                   </h4>
                   <div className="flex items-center gap-2">
@@ -572,7 +593,7 @@ const LiturgiaApp = () => {
                     </button>
                   </div>
                 </div>
-                <div className={`${fontSizeClasses[fontSize]} leading-relaxed ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
+                <div className={`${fontSizeClasses[fontSize]} leading-relaxed ${darkMode ? 'text-gray-100' : 'text-gray-800'}`} style={{ fontFamily: 'Gelasio, serif' }}>
                   {formatTextWithVerses(extra.texto)}
                 </div>
               </div>
@@ -581,7 +602,7 @@ const LiturgiaApp = () => {
             return (
               <div key={key} className={`mb-4 p-4 rounded-xl border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className={`font-semibold capitalize ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  <h4 className={`font-semibold capitalize ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} style={{ fontFamily: 'Gelasio, serif' }}>
                     {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
                   </h4>
                   <div className="flex items-center gap-2">
@@ -602,7 +623,7 @@ const LiturgiaApp = () => {
                     </button>
                   </div>
                 </div>
-                <div className={`${fontSizeClasses[fontSize]} leading-relaxed ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
+                <div className={`${fontSizeClasses[fontSize]} leading-relaxed ${darkMode ? 'text-gray-100' : 'text-gray-800'}`} style={{ fontFamily: 'Gelasio, serif' }}>
                   {formatTextWithVerses(value)}
                 </div>
               </div>
@@ -618,11 +639,11 @@ const LiturgiaApp = () => {
 
     return (
       <div className="mb-8">
-        <h3 className={`text-xl font-bold mb-4 ${getCurrentColor().text}`}>Antífonas</h3>
+        <h3 className={`text-xl font-bold mb-4 ${getCurrentColor().text}`} style={{ fontFamily: 'Gelasio, serif' }}>Antífonas</h3>
         {Object.entries(liturgiaData.antifonas).map(([key, value]) => (
           <div key={key} className={`mb-4 p-4 rounded-xl border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             <div className="flex items-center justify-between mb-2">
-              <h4 className={`font-semibold capitalize ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+              <h4 className={`font-semibold capitalize ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} style={{ fontFamily: 'Gelasio, serif' }}>
                 {key}
               </h4>
               <div className="flex items-center gap-2">
@@ -643,7 +664,7 @@ const LiturgiaApp = () => {
                 </button>
               </div>
             </div>
-            <div className={`${fontSizeClasses[fontSize]} leading-relaxed ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
+            <div className={`${fontSizeClasses[fontSize]} leading-relaxed ${darkMode ? 'text-gray-100' : 'text-gray-800'}`} style={{ fontFamily: 'Gelasio, serif' }}>
               {formatTextWithVerses(value)}
             </div>
           </div>
@@ -802,7 +823,7 @@ const LiturgiaApp = () => {
                           : darkMode
                           ? 'hover:bg-gray-700 text-gray-200'
                           : 'hover:bg-gray-100 text-gray-700'
-                      } ${getSeasonColor(day.liturgicalSeason)}`}
+                      } ${!day.isToday && !day.isSelected ? getSeasonColor(day.liturgicalSeason) : ''}`}
                     >
                       {day.day}
                     </button>
@@ -814,11 +835,11 @@ const LiturgiaApp = () => {
             </div>
             <div className="mt-3 text-xs text-center">
               <div className={`inline-flex items-center gap-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                <div className="w-3 h-3 bg-purple-100 border border-purple-200 rounded"></div>
+                <div className={`w-3 h-3 rounded ${darkMode ? 'bg-purple-800/40 border border-purple-600/50' : 'bg-purple-100 border border-purple-200'}`}></div>
                 <span>Advento/Quaresma</span>
-                <div className="w-3 h-3 bg-yellow-100 border border-yellow-200 rounded ml-2"></div>
+                <div className={`w-3 h-3 rounded ml-2 ${darkMode ? 'bg-yellow-700/40 border border-yellow-600/50' : 'bg-yellow-100 border border-yellow-200'}`}></div>
                 <span>Páscoa</span>
-                <div className="w-3 h-3 bg-green-100 border border-green-200 rounded ml-2"></div>
+                <div className={`w-3 h-3 rounded ml-2 ${darkMode ? 'bg-green-800/40 border border-green-600/50' : 'bg-green-100 border border-green-200'}`}></div>
                 <span>Tempo Comum</span>
               </div>
             </div>
@@ -918,7 +939,7 @@ const LiturgiaApp = () => {
       <div className="p-4 pb-20">
         {/* Liturgy information */}
         <div className={`p-6 rounded-2xl mb-6 bg-gradient-to-r ${currentColor.primary} text-white shadow-xl`}>
-          <h2 className="text-xl font-bold mb-2">{liturgiaData?.liturgia}</h2>
+          <h2 className="text-xl font-bold mb-2" style={{ fontFamily: 'Gelasio, serif' }}>{liturgiaData?.liturgia}</h2>
           <div className="flex flex-wrap gap-4 text-sm opacity-90">
             <span>📅 {liturgiaData?.data}</span>
             <span>🎨 Cor: {liturgiaData?.cor}</span>
