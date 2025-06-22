@@ -1,20 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays, AArrowDown, AArrowUp, ToggleLeft, ToggleRight } from 'lucide-react';
 
 // Carregando fonte Gelasio do Google Fonts
 const loadGelasioFont = () => {
   const link = document.createElement('link');
   link.href = 'https://fonts.googleapis.com/css2?family=Gelasio:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap';
-  link.rel = 'stylesheet';
-  if (!document.querySelector(`link[href="${link.href}"]`)) {
-    document.head.appendChild(link);
-  }
-};
-
-// Carregando Material Symbols Icons
-const loadMaterialSymbols = () => {
-  const link = document.createElement('link');
-  link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200';
   link.rel = 'stylesheet';
   if (!document.querySelector(`link[href="${link.href}"]`)) {
     document.head.appendChild(link);
@@ -818,7 +808,6 @@ const LiturgiaApp = () => {
   useEffect(() => {
     fetchLiturgia(currentDate);
     loadGelasioFont(); // Carrega a fonte Gelasio
-    loadMaterialSymbols(); // Carrega Material Symbols
   }, [currentDate, fetchLiturgia]);
 
   // Schedule notification when enabled or time changes
@@ -1162,133 +1151,6 @@ const LiturgiaApp = () => {
                 <Download size={20} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
               </button>
             )}
-            
-            {/* Debug Controls - sempre visíveis */}
-            <button
-              onClick={() => {
-                console.log('='.repeat(60));
-                console.log('🧪 TESTE MANUAL DE NOTIFICAÇÃO');
-                console.log('='.repeat(60));
-                console.log('🔍 Debug - Permissão atual:', Notification.permission);
-                console.log('🔍 Debug - Notificações habilitadas:', notificationsEnabled);
-                console.log('🔍 Debug - Iniciando teste...');
-                showNotification(false); // false = manual
-                console.log('='.repeat(60));
-              }}
-              className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700 bg-blue-600' : 'hover:bg-gray-100 bg-blue-500'} transition-colors`}
-              title="Testar Notificação Manual"
-            >
-              <Bell size={16} className="text-white" />
-            </button>
-            
-            <button
-              onClick={() => {
-                console.log('='.repeat(60));
-                console.log('🔄 FORÇAR REAGENDAMENTO');
-                console.log('='.repeat(60));
-                console.log('🔧 Estado antes do reagendamento:', {
-                  enabled: notificationsEnabled,
-                  time: notificationTime,
-                  hasTimer: !!notificationTimer
-                });
-                
-                if (notificationsEnabled) {
-                  scheduleNotification();
-                  console.log('✅ Reagendamento forçado executado');
-                } else {
-                  console.log('⚠️ Notificações desabilitadas - não reagendando');
-                }
-                console.log('='.repeat(60));
-              }}
-              className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700 bg-green-600' : 'hover:bg-gray-100 bg-green-500'} transition-colors`}
-              title="Reagendar Timer"
-            >
-              <span className="material-symbols-outlined text-white" style={{ fontSize: '16px' }}>
-                schedule
-              </span>
-            </button>
-            
-            <button
-              onClick={() => {
-                console.log('='.repeat(60));
-                console.log('🔍 STATUS DEBUG COMPLETO');
-                console.log('='.repeat(60));
-                console.log('- Notification support:', 'Notification' in window);
-                console.log('- Permission:', Notification.permission);
-                console.log('- ServiceWorker support:', 'serviceWorker' in navigator);
-                console.log('- Notifications enabled:', notificationsEnabled);
-                console.log('- Current timer ID:', notificationTimer);
-                console.log('- Timer ativo:', notificationTimer ? 'SIM' : 'NÃO');
-                console.log('- Notification time:', notificationTime);
-                console.log('- PWA Mode:', window.matchMedia('(display-mode: standalone)').matches);
-                console.log('- User Agent:', navigator.userAgent);
-                console.log('- URL atual:', window.location.href);
-                console.log('- localStorage notificationsEnabled:', localStorage.getItem('notificationsEnabled'));
-                
-                // Calcular próximo disparo
-                if (notificationsEnabled && notificationTime) {
-                  const [hours, minutes] = notificationTime.split(':');
-                  const now = new Date();
-                  const nextNotification = new Date();
-                  nextNotification.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-                  
-                  if (nextNotification <= now) {
-                    nextNotification.setDate(nextNotification.getDate() + 1);
-                  }
-                  
-                  const timeUntil = nextNotification.getTime() - now.getTime();
-                  const minutesUntil = Math.round(timeUntil / 1000 / 60);
-                  
-                  console.log('- Próximo disparo calculado:', nextNotification.toLocaleString());
-                  console.log('- Minutos até disparo:', minutesUntil);
-                  console.log('- Milissegundos até disparo:', timeUntil);
-                }
-                
-                // Verificar Service Worker ativo
-                if ('serviceWorker' in navigator) {
-                  // Verificar registrations primeiro
-                  navigator.serviceWorker.getRegistrations().then(registrations => {
-                    console.log('- SW Registrations total:', registrations.length);
-                    
-                    if (registrations.length === 0) {
-                      console.warn('- ⚠️ PROBLEMA: Nenhum Service Worker registrado!');
-                      console.warn('- 💡 SOLUÇÃO: Verifique se /sw.js existe e está acessível');
-                      console.warn('- 💡 ALTERNATIVA: Registre manualmente com navigator.serviceWorker.register("/sw.js")');
-                    } else {
-                      registrations.forEach((reg, index) => {
-                        console.log(`- SW ${index}:`, {
-                          scope: reg.scope,
-                          active: reg.active?.state,
-                          installing: reg.installing?.state,
-                          waiting: reg.waiting?.state,
-                          updateViaCache: reg.updateViaCache,
-                          scriptURL: reg.active?.scriptURL
-                        });
-                      });
-                    }
-                  }).catch(regError => {
-                    console.error('- SW getRegistrations Error:', regError);
-                  });
-                  
-                  // Tentar ready apenas se há registrations
-                  navigator.serviceWorker.ready.then(reg => {
-                    console.log('- Service Worker ready:', {
-                      active: reg.active?.state,
-                      scope: reg.scope,
-                      scriptURL: reg.active?.scriptURL
-                    });
-                  }).catch(swError => {
-                    console.error('- SW Ready Error:', swError);
-                    console.warn('- 💡 Isso indica que não há Service Worker registrado');
-                  });
-                }
-                console.log('='.repeat(60));
-              }}
-              className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700 bg-orange-600' : 'hover:bg-gray-100 bg-orange-500'} transition-colors`}
-              title="Debug Info"
-            >
-              <AlertCircle size={16} className="text-white" />
-            </button>
 
             {/* Calendar - apenas um calendário litúrgico */}
             <button
@@ -1306,7 +1168,7 @@ const LiturgiaApp = () => {
               {darkMode ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} className="text-gray-700" />}
             </button>
 
-            {/* Font size controls - Simplificado com Material Symbols */}
+            {/* Font size controls */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
@@ -1324,9 +1186,7 @@ const LiturgiaApp = () => {
                 }`}
                 title="Diminuir texto"
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                  text_decrease
-                </span>
+                <AArrowDown size={20} />
               </button>
               
               <button
@@ -1345,9 +1205,7 @@ const LiturgiaApp = () => {
                 }`}
                 title="Aumentar texto"
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                  text_increase
-                </span>
+                <AArrowUp size={20} />
               </button>
             </div>
           </div>
@@ -1466,9 +1324,12 @@ const LiturgiaApp = () => {
                 </div>
                 <button
                   onClick={toggleNotifications}
-                  className={`p-1 rounded ${notificationsEnabled ? 'bg-blue-600' : darkMode ? 'bg-gray-600' : 'bg-gray-300'} transition-colors`}
+                  className={`transition-colors ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} rounded-full p-1`}
                 >
-                  <div className={`w-4 h-4 rounded ${notificationsEnabled ? 'bg-white' : 'bg-gray-400'} transition-transform ${notificationsEnabled ? 'translate-x-0' : '-translate-x-1'}`}></div>
+                  {notificationsEnabled ? 
+                    <ToggleRight size={20} className="text-blue-500" /> : 
+                    <ToggleLeft size={20} className={darkMode ? 'text-gray-400' : 'text-gray-500'} />
+                  }
                 </button>
               </div>
 
@@ -1507,9 +1368,12 @@ const LiturgiaApp = () => {
                 </div>
                 <button
                   onClick={() => updateAudioEnabled(!audioEnabled)}
-                  className={`p-1 rounded ${audioEnabled ? 'bg-green-600' : darkMode ? 'bg-gray-600' : 'bg-gray-300'} transition-colors`}
+                  className={`transition-colors ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} rounded-full p-1`}
                 >
-                  <div className={`w-4 h-4 rounded ${audioEnabled ? 'bg-white' : 'bg-gray-400'} transition-transform ${audioEnabled ? 'translate-x-0' : '-translate-x-1'}`}></div>
+                  {audioEnabled ? 
+                    <ToggleRight size={20} className="text-green-500" /> : 
+                    <ToggleLeft size={20} className={darkMode ? 'text-gray-400' : 'text-gray-500'} />
+                  }
                 </button>
               </div>
             </div>
