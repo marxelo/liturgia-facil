@@ -279,6 +279,13 @@ const LiturgiaApp = () => {
   };
 
   const scheduleNotification = useCallback(() => {
+    console.log('🔧 [AGENDAMENTO] Iniciando processo de agendamento...');
+    console.log('🔧 [AGENDAMENTO] Estado atual:', {
+      notificationsEnabled,
+      notificationTime,
+      hasTimer: !!notificationTimer
+    });
+    
     if (!notificationsEnabled) {
       console.log('🔕 [AGENDAMENTO] Notificações desabilitadas - não agendando');
       return;
@@ -287,7 +294,8 @@ const LiturgiaApp = () => {
     // Clear existing timer
     if (notificationTimer) {
       clearTimeout(notificationTimer);
-      console.log('⏹️ [AGENDAMENTO] Timer anterior cancelado');
+      console.log('⏹️ [AGENDAMENTO] Timer anterior cancelado:', notificationTimer);
+      setNotificationTimer(null);
     }
     
     try {
@@ -296,32 +304,73 @@ const LiturgiaApp = () => {
       const notificationDate = new Date();
       notificationDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
       
+      console.log('📋 [AGENDAMENTO] Dados do agendamento:', {
+        horaConfigurada: notificationTime,
+        horaAtual: now.toLocaleTimeString(),
+        dataNotificacao: notificationDate.toLocaleString()
+      });
+      
       // Se o horário já passou hoje, agendar para amanhã
       if (notificationDate <= now) {
         notificationDate.setDate(notificationDate.getDate() + 1);
+        console.log('📅 [AGENDAMENTO] Horário já passou hoje, agendando para amanhã');
+        console.log('📅 [AGENDAMENTO] Nova data: ', notificationDate.toLocaleString());
       }
       
       const timeUntilNotification = notificationDate.getTime() - now.getTime();
+      const minutesUntil = Math.round(timeUntilNotification / 1000 / 60);
+      const hoursUntil = Math.round(minutesUntil / 60);
       
       console.log(`📅 [AGENDAMENTO] Próxima notificação: ${notificationDate.toLocaleString()}`);
-      console.log(`⏰ [AGENDAMENTO] Tempo restante: ${Math.round(timeUntilNotification / 1000 / 60)} minutos`);
+      console.log(`⏰ [AGENDAMENTO] Tempo restante: ${minutesUntil} minutos (${hoursUntil} horas)`);
+      console.log(`⏰ [AGENDAMENTO] Milissegundos até disparo: ${timeUntilNotification}`);
+      
+      // Validar se o tempo é razoável (não muito longo que pode dar overflow)
+      if (timeUntilNotification > 2147483647) { // Max setTimeout value
+        console.error('❌ [AGENDAMENTO] Tempo muito longo, reagendando para 24h');
+        const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        const newTime = tomorrow.getTime() - now.getTime();
+        
+        const timerId = setTimeout(() => {
+          console.log('🚨 [AGENDAMENTO] Timer de 24h executado, reagendando...');
+          scheduleNotification();
+        }, newTime);
+        
+        setNotificationTimer(timerId);
+        return;
+      }
       
       const timerId = setTimeout(() => {
-        console.log('🚨 [AGENDAMENTO] Executando notificação automática!');
-        showNotification();
+        console.log('🚨 [AGENDAMENTO] EXECUTANDO NOTIFICAÇÃO AUTOMÁTICA!');
+        console.log('🚨 [AGENDAMENTO] Horário atual:', new Date().toLocaleString());
+        console.log('🚨 [AGENDAMENTO] Timer disparado conforme planejado!');
+        
+        // Chamar notificação marcando como automática
+        showNotification(true);
+        
+        // Reagendar automaticamente para o próximo dia
+        console.log('🔄 [AGENDAMENTO] Reagendando para o próximo dia...');
+        setTimeout(() => {
+          scheduleNotification();
+        }, 5000); // Aguarda 5 segundos antes de reagendar
+        
       }, timeUntilNotification);
       
       setNotificationTimer(timerId);
-      console.log(`✅ [AGENDAMENTO] Timer criado: ${timerId}`);
+      console.log(`✅ [AGENDAMENTO] Timer criado com sucesso!`);
+      console.log(`✅ [AGENDAMENTO] Timer ID: ${timerId}`);
+      console.log(`✅ [AGENDAMENTO] Será executado em: ${new Date(now.getTime() + timeUntilNotification).toLocaleString()}`);
       
     } catch (error) {
-      console.error('❌ [AGENDAMENTO] Erro:', error);
+      console.error('❌ [AGENDAMENTO] Erro durante agendamento:', error);
+      console.error('❌ [AGENDAMENTO] Stack:', error.stack);
     }
   }, [notificationsEnabled, notificationTime, notificationTimer]);
 
-  const showNotification = async () => {
+  const showNotification = async (isAutomatic = false) => {
     const timestamp = new Date().toLocaleString();
-    console.log(`🔔 [NOTIFICAÇÃO - ${timestamp}] INICIANDO ENVIO`);
+    const tipo = isAutomatic ? 'AUTOMÁTICA' : 'MANUAL';
+    console.log(`🔔 [NOTIFICAÇÃO ${tipo} - ${timestamp}] INICIANDO ENVIO`);
     
     try {
       // Verificar permissão primeiro
@@ -412,16 +461,23 @@ const LiturgiaApp = () => {
           console.log('🚀 [NOTIFICAÇÃO] ENVIANDO AGORA...');
           
           // Criar promise com timeout para detectar travamento
+          let timeoutId;
           const notificationPromise = registration.showNotification('Liturgia Diária 🙏', notificationOptions);
           
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => {
+            timeoutId = setTimeout(() => {
               reject(new Error('TIMEOUT: showNotification travou por mais de 10 segundos'));
             }, 10000);
           });
           
           // Race entre notificação e timeout
           await Promise.race([notificationPromise, timeoutPromise]);
+          
+          // IMPORTANTE: Cancelar timeout se chegou até aqui (sucesso)
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            console.log('⏰ [NOTIFICAÇÃO] Timer de timeout cancelado - notificação enviada com sucesso');
+          }
           
           console.log(`✅ [NOTIFICAÇÃO] PWA ENVIADA COM SUCESSO!`);
           console.log('📋 [NOTIFICAÇÃO] Confirmação de envio concluída');
@@ -551,22 +607,26 @@ const LiturgiaApp = () => {
       }
       
       // Reagendar para o próximo dia (apenas para notificações automáticas)
-      if (notificationsEnabled) {
-        console.log('🔄 [NOTIFICAÇÃO] Reagendando para amanhã...');
+      if (notificationsEnabled && isAutomatic) {
+        console.log('🔄 [NOTIFICAÇÃO] Notificação automática enviada, reagendando para amanhã...');
         setTimeout(() => {
+          console.log('🔄 [NOTIFICAÇÃO] Executando reagendamento pós-envio...');
           scheduleNotification();
-        }, 1000);
+        }, 2000);
+      } else if (isAutomatic) {
+        console.log('⚠️ [NOTIFICAÇÃO] Notificações foram desabilitadas durante execução automática');
       }
       
     } catch (error) {
       console.error('❌ [NOTIFICAÇÃO] ERRO GERAL:', error);
       console.error('❌ [NOTIFICAÇÃO] Stack:', error.stack);
       
-      // Reagendar apenas se as notificações estão habilitadas
-      if (notificationsEnabled) {
+      // Reagendar apenas se as notificações estão habilitadas e era automática
+      if (notificationsEnabled && isAutomatic) {
+        console.log('🔄 [NOTIFICAÇÃO] Erro em notificação automática, reagendando...');
         setTimeout(() => {
           scheduleNotification();
-        }, 1000);
+        }, 5000); // Aguarda mais tempo em caso de erro
       }
     }
   };
@@ -763,8 +823,22 @@ const LiturgiaApp = () => {
 
   // Schedule notification when enabled or time changes
   useEffect(() => {
+    console.log('🔧 [useEffect] Executando reagendamento automático...');
+    console.log('🔧 [useEffect] Dependências mudaram:', {
+      notificationsEnabled,
+      notificationTime
+    });
+    
     if (notificationsEnabled) {
+      console.log('✅ [useEffect] Notificações habilitadas, executando scheduleNotification...');
       scheduleNotification();
+    } else {
+      console.log('🔕 [useEffect] Notificações desabilitadas, limpando timer...');
+      if (notificationTimer) {
+        clearTimeout(notificationTimer);
+        setNotificationTimer(null);
+        console.log('⏹️ [useEffect] Timer limpo');
+      }
     }
   }, [notificationsEnabled, notificationTime, scheduleNotification]);
 
@@ -1098,13 +1172,40 @@ const LiturgiaApp = () => {
                 console.log('🔍 Debug - Permissão atual:', Notification.permission);
                 console.log('🔍 Debug - Notificações habilitadas:', notificationsEnabled);
                 console.log('🔍 Debug - Iniciando teste...');
-                showNotification();
+                showNotification(false); // false = manual
                 console.log('='.repeat(60));
               }}
               className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700 bg-blue-600' : 'hover:bg-gray-100 bg-blue-500'} transition-colors`}
-              title="Testar Notificação"
+              title="Testar Notificação Manual"
             >
               <Bell size={16} className="text-white" />
+            </button>
+            
+            <button
+              onClick={() => {
+                console.log('='.repeat(60));
+                console.log('🔄 FORÇAR REAGENDAMENTO');
+                console.log('='.repeat(60));
+                console.log('🔧 Estado antes do reagendamento:', {
+                  enabled: notificationsEnabled,
+                  time: notificationTime,
+                  hasTimer: !!notificationTimer
+                });
+                
+                if (notificationsEnabled) {
+                  scheduleNotification();
+                  console.log('✅ Reagendamento forçado executado');
+                } else {
+                  console.log('⚠️ Notificações desabilitadas - não reagendando');
+                }
+                console.log('='.repeat(60));
+              }}
+              className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700 bg-green-600' : 'hover:bg-gray-100 bg-green-500'} transition-colors`}
+              title="Reagendar Timer"
+            >
+              <span className="material-symbols-outlined text-white" style={{ fontSize: '16px' }}>
+                schedule
+              </span>
             </button>
             
             <button
@@ -1116,12 +1217,32 @@ const LiturgiaApp = () => {
                 console.log('- Permission:', Notification.permission);
                 console.log('- ServiceWorker support:', 'serviceWorker' in navigator);
                 console.log('- Notifications enabled:', notificationsEnabled);
-                console.log('- Current timer:', notificationTimer);
+                console.log('- Current timer ID:', notificationTimer);
+                console.log('- Timer ativo:', notificationTimer ? 'SIM' : 'NÃO');
                 console.log('- Notification time:', notificationTime);
                 console.log('- PWA Mode:', window.matchMedia('(display-mode: standalone)').matches);
                 console.log('- User Agent:', navigator.userAgent);
                 console.log('- URL atual:', window.location.href);
                 console.log('- localStorage notificationsEnabled:', localStorage.getItem('notificationsEnabled'));
+                
+                // Calcular próximo disparo
+                if (notificationsEnabled && notificationTime) {
+                  const [hours, minutes] = notificationTime.split(':');
+                  const now = new Date();
+                  const nextNotification = new Date();
+                  nextNotification.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                  
+                  if (nextNotification <= now) {
+                    nextNotification.setDate(nextNotification.getDate() + 1);
+                  }
+                  
+                  const timeUntil = nextNotification.getTime() - now.getTime();
+                  const minutesUntil = Math.round(timeUntil / 1000 / 60);
+                  
+                  console.log('- Próximo disparo calculado:', nextNotification.toLocaleString());
+                  console.log('- Minutos até disparo:', minutesUntil);
+                  console.log('- Milissegundos até disparo:', timeUntil);
+                }
                 
                 // Verificar Service Worker ativo
                 if ('serviceWorker' in navigator) {
