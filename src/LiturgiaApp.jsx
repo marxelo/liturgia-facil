@@ -412,16 +412,23 @@ const LiturgiaApp = () => {
           console.log('🚀 [NOTIFICAÇÃO] ENVIANDO AGORA...');
           
           // Criar promise com timeout para detectar travamento
+          let timeoutId;
           const notificationPromise = registration.showNotification('Liturgia Diária 🙏', notificationOptions);
           
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => {
+            timeoutId = setTimeout(() => {
               reject(new Error('TIMEOUT: showNotification travou por mais de 10 segundos'));
             }, 10000);
           });
           
           // Race entre notificação e timeout
           await Promise.race([notificationPromise, timeoutPromise]);
+          
+          // IMPORTANTE: Cancelar timeout se chegou até aqui (sucesso)
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            console.log('⏰ [NOTIFICAÇÃO] Timer de timeout cancelado - notificação enviada com sucesso');
+          }
           
           console.log(`✅ [NOTIFICAÇÃO] PWA ENVIADA COM SUCESSO!`);
           console.log('📋 [NOTIFICAÇÃO] Confirmação de envio concluída');
