@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays, AArrowDown, AArrowUp, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays, Minus, Plus, Type, ToggleLeft, ToggleRight } from 'lucide-react';
 
 // Carregando fonte Gelasio do Google Fonts
 const loadGelasioFont = () => {
@@ -1169,7 +1169,7 @@ const LiturgiaApp = () => {
             </button>
 
             {/* Font size controls */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => {
                   const sizes = ['sm', 'base', 'lg', 'xl', '2xl'];
@@ -1186,8 +1186,13 @@ const LiturgiaApp = () => {
                 }`}
                 title="Diminuir texto"
               >
-                <AArrowDown size={20} />
+                <Minus size={16} />
               </button>
+              
+              {/* Type icon indicator */}
+              <div className={`p-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} title="Controles de tamanho do texto">
+                <Type size={14} />
+              </div>
               
               <button
                 onClick={() => {
@@ -1205,7 +1210,7 @@ const LiturgiaApp = () => {
                 }`}
                 title="Aumentar texto"
               >
-                <AArrowUp size={20} />
+                <Plus size={16} />
               </button>
             </div>
           </div>
