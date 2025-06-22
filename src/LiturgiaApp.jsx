@@ -337,98 +337,135 @@ const LiturgiaApp = () => {
       }
 
       console.log(`✅ [${timestamp}] Permissão OK, enviando notificação da LITURGIA DIÁRIA...`);
+      
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+      const hasServiceWorker = 'serviceWorker' in navigator;
+      
       console.log('🔍 Ambiente:', {
-        standalone: window.matchMedia('(display-mode: standalone)').matches,
-        serviceWorker: 'serviceWorker' in navigator,
+        standalone: isPWA,
+        serviceWorker: hasServiceWorker,
         userAgent: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop'
       });
 
-      // Tentar método mais simples primeiro - direto Notification API
-      try {
-        console.log('🖥️ Tentando Notification API direta...');
-        
-        const notification = new Notification('Liturgia Diária 🙏', {
-          body: 'Hora de conferir a liturgia de hoje!',
-          icon: '/icons/icon-192.png',
-          tag: 'liturgia-daily',
-          requireInteraction: false,
-          silent: false,
-          badge: '/icons/icon-192.png',
-          data: {
-            source: 'liturgia-app',
-            timestamp: Date.now(),
-            url: window.location.href
-          }
-        });
-        
-        // Event listeners para debug
-        notification.onclick = () => {
-          console.log('🔔 Notificação clicada');
-          window.focus();
-          notification.close();
-        };
-        
-        notification.onshow = () => {
-          console.log(`✅ [${timestamp}] NOTIFICAÇÃO LITURGIA MOSTRADA COM SUCESSO (Notification API)`);
-          console.log('📋 Dados da notificação:', {
-            title: notification.title,
-            body: notification.body,
-            tag: notification.tag,
-            icon: notification.icon
+      // NOVA LÓGICA: Service Worker PRIMEIRO para PWA, Notification API para browser
+      if (isPWA && hasServiceWorker) {
+        // PWA: Usar APENAS Service Worker
+        try {
+          console.log('📱 PWA detectado - usando Service Worker obrigatoriamente...');
+          const registration = await navigator.serviceWorker.ready;
+          
+          await registration.showNotification('Liturgia Diária 🙏', {
+            body: 'Hora de conferir a liturgia de hoje!',
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png',
+            tag: 'liturgia-daily-pwa',
+            vibrate: [200, 100, 200],
+            requireInteraction: false,
+            silent: false,
+            data: {
+              source: 'liturgia-app-pwa',
+              timestamp: Date.now(),
+              url: window.location.href,
+              action: 'daily-reminder'
+            },
+            actions: [
+              { action: 'open', title: 'Abrir App', icon: '/icons/icon-192.png' },
+              { action: 'dismiss', title: 'Dispensar', icon: '/icons/icon-192.png' }
+            ]
           });
-        };
+          
+          console.log(`✅ [${timestamp}] NOTIFICAÇÃO PWA ENVIADA VIA SERVICE WORKER`);
+          console.log('📋 Dados enviados:', {
+            title: 'Liturgia Diária 🙏',
+            body: 'Hora de conferir a liturgia de hoje!',
+            tag: 'liturgia-daily-pwa',
+            source: 'liturgia-app-pwa'
+          });
+          
+        } catch (pwaError) {
+          console.error('❌ PWA Service Worker falhou:', pwaError);
+          throw pwaError;
+        }
         
-        notification.onerror = (error) => {
-          console.error(`❌ [${timestamp}] ERRO NA NOTIFICAÇÃO LITURGIA:`, error);
-        };
-
-        // Auto-close após 10 segundos
-        setTimeout(() => {
-          notification.close();
-        }, 10000);
-
-      } catch (directError) {
-        console.warn('⚠️ Notification API direta falhou:', directError);
-        
-        // Fallback para Service Worker (apenas se estiver disponível)
-        if ('serviceWorker' in navigator) {
-          try {
-            console.log('📱 Tentando Service Worker...');
-            const registration = await navigator.serviceWorker.ready;
-            
-            await registration.showNotification('Liturgia Diária 🙏', {
-              body: 'Hora de conferir a liturgia de hoje!',
-              icon: '/icons/icon-192.png',
-              badge: '/icons/icon-192.png',
-              tag: 'liturgia-daily-scheduled',
-              vibrate: [200, 100, 200],
-              requireInteraction: false,
-              silent: false,
-              data: {
-                source: 'liturgia-app-scheduled',
-                timestamp: Date.now(),
-                url: window.location.href,
-                action: 'daily-reminder'
-              },
-              actions: [
-                { action: 'open', title: 'Abrir App', icon: '/icons/icon-192.png' },
-                { action: 'dismiss', title: 'Dispensar', icon: '/icons/icon-192.png' }
-              ]
+      } else {
+        // BROWSER: Tentar Notification API primeiro, Service Worker como fallback
+        try {
+          console.log('🖥️ Browser detectado - tentando Notification API...');
+          
+          const notification = new Notification('Liturgia Diária 🙏', {
+            body: 'Hora de conferir a liturgia de hoje!',
+            icon: '/icons/icon-192.png',
+            tag: 'liturgia-daily-browser',
+            requireInteraction: false,
+            silent: false,
+            badge: '/icons/icon-192.png',
+            data: {
+              source: 'liturgia-app-browser',
+              timestamp: Date.now(),
+              url: window.location.href
+            }
+          });
+          
+          // Event listeners para debug
+          notification.onclick = () => {
+            console.log('🔔 Notificação browser clicada');
+            window.focus();
+            notification.close();
+          };
+          
+          notification.onshow = () => {
+            console.log(`✅ [${timestamp}] NOTIFICAÇÃO BROWSER MOSTRADA COM SUCESSO`);
+            console.log('📋 Dados da notificação:', {
+              title: notification.title,
+              body: notification.body,
+              tag: notification.tag,
+              icon: notification.icon
             });
-            
-            console.log(`✅ [${timestamp}] NOTIFICAÇÃO LITURGIA ENVIADA VIA SERVICE WORKER`);
-            console.log('📋 Dados enviados:', {
-              title: 'Liturgia Diária 🙏',
-              body: 'Hora de conferir a liturgia de hoje!',
-              tag: 'liturgia-daily-scheduled',
-              source: 'liturgia-app-scheduled'
-            });
-          } catch (swError) {
-            console.error('❌ Service Worker também falhou:', swError);
-            throw swError;
+          };
+          
+          notification.onerror = (error) => {
+            console.error(`❌ [${timestamp}] ERRO NA NOTIFICAÇÃO BROWSER:`, error);
+          };
+
+          // Auto-close após 10 segundos
+          setTimeout(() => {
+            notification.close();
+          }, 10000);
+
+        } catch (browserError) {
+          console.warn('⚠️ Notification API falhou, tentando Service Worker fallback:', browserError);
+          
+          // Fallback: Service Worker para browsers que bloqueiam Notification API
+          if (hasServiceWorker) {
+            try {
+              console.log('📱 Fallback - usando Service Worker...');
+              const registration = await navigator.serviceWorker.ready;
+              
+              await registration.showNotification('Liturgia Diária 🙏', {
+                body: 'Hora de conferir a liturgia de hoje!',
+                icon: '/icons/icon-192.png',
+                badge: '/icons/icon-192.png',
+                tag: 'liturgia-daily-fallback',
+                vibrate: [200, 100, 200],
+                requireInteraction: false,
+                silent: false,
+                data: {
+                  source: 'liturgia-app-fallback',
+                  timestamp: Date.now(),
+                  url: window.location.href,
+                  action: 'daily-reminder'
+                }
+              });
+              
+              console.log(`✅ [${timestamp}] NOTIFICAÇÃO FALLBACK ENVIADA VIA SERVICE WORKER`);
+              
+            } catch (fallbackError) {
+              console.error('❌ Service Worker fallback também falhou:', fallbackError);
+              throw fallbackError;
+            }
+          } else {
+            throw browserError;
           }
-        } else {
-          throw directError;
         }
       }
       
