@@ -360,6 +360,29 @@ const LiturgiaApp = () => {
         try {
           console.log('📱 [NOTIFICAÇÃO] PWA detectado - usando Service Worker...');
           
+          // Verificar se há registrations ANTES de aguardar ready
+          console.log('🔍 [NOTIFICAÇÃO] Verificando registrations do Service Worker...');
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          console.log('📋 [NOTIFICAÇÃO] Registrations encontradas:', registrations.length);
+          
+          if (registrations.length === 0) {
+            console.warn('⚠️ [NOTIFICAÇÃO] NENHUM SERVICE WORKER REGISTRADO!');
+            console.log('🔄 [NOTIFICAÇÃO] Tentando registrar Service Worker automaticamente...');
+            
+            try {
+              const newRegistration = await navigator.serviceWorker.register('/sw.js');
+              console.log('✅ [NOTIFICAÇÃO] Service Worker registrado com sucesso:', newRegistration);
+              
+              // Aguardar ativação
+              await navigator.serviceWorker.ready;
+              console.log('✅ [NOTIFICAÇÃO] Service Worker ativado e pronto');
+              
+            } catch (swRegisterError) {
+              console.error('❌ [NOTIFICAÇÃO] Falha ao registrar Service Worker:', swRegisterError);
+              throw new Error('Não foi possível registrar Service Worker - verifique se /sw.js existe');
+            }
+          }
+          
           console.log('🔍 [NOTIFICAÇÃO] Aguardando Service Worker ready...');
           const registration = await navigator.serviceWorker.ready;
           console.log('✅ [NOTIFICAÇÃO] Service Worker ready obtido:', {
@@ -1102,26 +1125,40 @@ const LiturgiaApp = () => {
                 
                 // Verificar Service Worker ativo
                 if ('serviceWorker' in navigator) {
-                  navigator.serviceWorker.ready.then(reg => {
-                    console.log('- Service Worker ativo:', reg.active?.scriptURL);
-                    console.log('- SW State:', reg.active?.state);
-                    console.log('- SW Scope:', reg.scope);
-                    console.log('- SW Installing:', reg.installing?.state);
-                    console.log('- SW Waiting:', reg.waiting?.state);
-                  }).catch(swError => {
-                    console.error('- SW Ready Error:', swError);
-                  });
-                  
-                  // Verificar registrations
+                  // Verificar registrations primeiro
                   navigator.serviceWorker.getRegistrations().then(registrations => {
                     console.log('- SW Registrations total:', registrations.length);
-                    registrations.forEach((reg, index) => {
-                      console.log(`- SW ${index}:`, {
-                        scope: reg.scope,
-                        active: reg.active?.state,
-                        updateViaCache: reg.updateViaCache
+                    
+                    if (registrations.length === 0) {
+                      console.warn('- ⚠️ PROBLEMA: Nenhum Service Worker registrado!');
+                      console.warn('- 💡 SOLUÇÃO: Verifique se /sw.js existe e está acessível');
+                      console.warn('- 💡 ALTERNATIVA: Registre manualmente com navigator.serviceWorker.register("/sw.js")');
+                    } else {
+                      registrations.forEach((reg, index) => {
+                        console.log(`- SW ${index}:`, {
+                          scope: reg.scope,
+                          active: reg.active?.state,
+                          installing: reg.installing?.state,
+                          waiting: reg.waiting?.state,
+                          updateViaCache: reg.updateViaCache,
+                          scriptURL: reg.active?.scriptURL
+                        });
                       });
+                    }
+                  }).catch(regError => {
+                    console.error('- SW getRegistrations Error:', regError);
+                  });
+                  
+                  // Tentar ready apenas se há registrations
+                  navigator.serviceWorker.ready.then(reg => {
+                    console.log('- Service Worker ready:', {
+                      active: reg.active?.state,
+                      scope: reg.scope,
+                      scriptURL: reg.active?.scriptURL
                     });
+                  }).catch(swError => {
+                    console.error('- SW Ready Error:', swError);
+                    console.warn('- 💡 Isso indica que não há Service Worker registrado');
                   });
                 }
                 console.log('='.repeat(60));
