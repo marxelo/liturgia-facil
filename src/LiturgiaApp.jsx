@@ -1,10 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Sun, Moon, Type, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays } from 'lucide-react';
 
 // Carregando fonte Gelasio do Google Fonts
 const loadGelasioFont = () => {
   const link = document.createElement('link');
   link.href = 'https://fonts.googleapis.com/css2?family=Gelasio:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap';
+  link.rel = 'stylesheet';
+  if (!document.querySelector(`link[href="${link.href}"]`)) {
+    document.head.appendChild(link);
+  }
+};
+
+// Carregando Material Symbols Icons
+const loadMaterialSymbols = () => {
+  const link = document.createElement('link');
+  link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200';
   link.rel = 'stylesheet';
   if (!document.querySelector(`link[href="${link.href}"]`)) {
     document.head.appendChild(link);
@@ -37,6 +47,7 @@ const LiturgiaApp = () => {
   // Simple localStorage hook (replacing hatch dependency)
   const [notificationTime, setNotificationTime] = useState('07:00');
   const [audioEnabled, setAudioEnabled] = useState(true);
+  const [notificationTimer, setNotificationTimer] = useState(null);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -44,6 +55,8 @@ const LiturgiaApp = () => {
       const savedNotificationTime = localStorage.getItem('notificationTime');
       const savedAudioEnabled = localStorage.getItem('audioEnabled');
       const savedNotificationsEnabled = localStorage.getItem('notificationsEnabled');
+      const savedFontSize = localStorage.getItem('fontSize');
+      const savedDarkMode = localStorage.getItem('darkMode');
       
       if (savedNotificationTime) {
         setNotificationTime(savedNotificationTime);
@@ -53,6 +66,12 @@ const LiturgiaApp = () => {
       }
       if (savedNotificationsEnabled !== null) {
         setNotificationsEnabled(JSON.parse(savedNotificationsEnabled));
+      }
+      if (savedFontSize) {
+        setFontSize(savedFontSize);
+      }
+      if (savedDarkMode !== null) {
+        setDarkMode(JSON.parse(savedDarkMode));
       }
     } catch (error) {
       console.warn('Failed to load settings from localStorage:', error);
@@ -86,6 +105,26 @@ const LiturgiaApp = () => {
       localStorage.setItem('notificationsEnabled', JSON.stringify(enabled));
     } catch (error) {
       console.warn('Failed to save notifications setting:', error);
+    }
+  }, []);
+
+  // Save font size to localStorage
+  const updateFontSize = useCallback((size) => {
+    setFontSize(size);
+    try {
+      localStorage.setItem('fontSize', size);
+    } catch (error) {
+      console.warn('Failed to save font size:', error);
+    }
+  }, []);
+
+  // Save dark mode to localStorage
+  const updateDarkMode = useCallback((enabled) => {
+    setDarkMode(enabled);
+    try {
+      localStorage.setItem('darkMode', JSON.stringify(enabled));
+    } catch (error) {
+      console.warn('Failed to save dark mode:', error);
     }
   }, []);
 
@@ -201,13 +240,27 @@ const LiturgiaApp = () => {
   const toggleNotifications = () => {
     if (notificationsEnabled) {
       updateNotificationsEnabled(false);
+      // Clear existing timer
+      if (notificationTimer) {
+        clearTimeout(notificationTimer);
+        setNotificationTimer(null);
+      }
     } else {
       requestNotificationPermission();
     }
   };
 
   const scheduleNotification = useCallback(() => {
-    if (!notificationsEnabled) return;
+    if (!notificationsEnabled) {
+      console.log('Notificações desabilitadas - não agendando');
+      return;
+    }
+    
+    // Clear existing timer
+    if (notificationTimer) {
+      clearTimeout(notificationTimer);
+      console.log('Timer anterior cancelado');
+    }
     
     try {
       const [hours, minutes] = notificationTime.split(':');
@@ -215,27 +268,95 @@ const LiturgiaApp = () => {
       const notificationDate = new Date();
       notificationDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
       
+      // Se o horário já passou hoje, agendar para amanhã
       if (notificationDate <= now) {
         notificationDate.setDate(notificationDate.getDate() + 1);
       }
       
       const timeUntilNotification = notificationDate.getTime() - now.getTime();
       
-      setTimeout(() => {
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Liturgia Diária 🙏', {
+      console.log(`📅 Agendando notificação para: ${notificationDate.toLocaleString()}`);
+      console.log(`⏰ Tempo até notificação: ${Math.round(timeUntilNotification / 1000 / 60)} minutos`);
+      console.log(`🔔 Timer ID será criado em breve...`);
+      
+      const timerId = setTimeout(() => {
+        console.log('🚨 Executando notificação agora!');
+        showNotification();
+      }, timeUntilNotification);
+      
+      setNotificationTimer(timerId);
+      console.log(`✅ Timer criado com ID: ${timerId}`);
+      
+    } catch (error) {
+      console.error('❌ Erro ao agendar notificação:', error);
+    }
+  }, [notificationsEnabled, notificationTime, notificationTimer]);
+
+  const showNotification = async () => {
+    console.log('🔔 Tentando mostrar notificação...');
+    
+    try {
+      // Verificar permissão
+      if (Notification.permission !== 'granted') {
+        console.warn('⚠️ Permissão de notificação não concedida');
+        return;
+      }
+
+      // Para mobile com Service Worker
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          console.log('📱 Usando Service Worker para notificação');
+          
+          await registration.showNotification('Liturgia Diária 🙏', {
             body: 'Hora de conferir a liturgia de hoje!',
             icon: '/icons/icon-192.png',
             badge: '/icons/icon-192.png',
+            tag: 'liturgia-daily',
+            requireInteraction: true,
+            vibrate: [200, 100, 200],
+            actions: [
+              { action: 'open', title: 'Abrir App' },
+              { action: 'close', title: 'Fechar' }
+            ]
+          });
+          
+          console.log('✅ Notificação Service Worker enviada com sucesso');
+        } catch (swError) {
+          console.warn('⚠️ Service Worker falhou, tentando Notification API:', swError);
+          
+          // Fallback para Notification API
+          new Notification('Liturgia Diária 🙏', {
+            body: 'Hora de conferir a liturgia de hoje!',
+            icon: '/icons/icon-192.png',
             tag: 'liturgia-daily'
           });
-          scheduleNotification(); // Schedule next day
+          
+          console.log('✅ Notificação desktop enviada com sucesso');
         }
-      }, timeUntilNotification);
+      } else {
+        // Apenas Notification API para browsers mais antigos
+        console.log('🖥️ Usando Notification API direta');
+        
+        new Notification('Liturgia Diária 🙏', {
+          body: 'Hora de conferir a liturgia de hoje!',
+          icon: '/icons/icon-192.png',
+          tag: 'liturgia-daily'
+        });
+        
+        console.log('✅ Notificação enviada com sucesso');
+      }
+      
+      // Reagendar para o próximo dia
+      console.log('🔄 Reagendando para amanhã...');
+      setTimeout(scheduleNotification, 1000);
+      
     } catch (error) {
-      console.error('Erro ao agendar notificação:', error);
+      console.error('❌ Erro ao mostrar notificação:', error);
+      // Ainda assim reagendar para o próximo dia
+      setTimeout(scheduleNotification, 1000);
     }
-  }, [notificationsEnabled, notificationTime]);
+  };
 
   // Audio functionality (Text-to-Speech)
   const speakText = useCallback((text, sectionName) => {
@@ -424,7 +545,15 @@ const LiturgiaApp = () => {
   useEffect(() => {
     fetchLiturgia(currentDate);
     loadGelasioFont(); // Carrega a fonte Gelasio
+    loadMaterialSymbols(); // Carrega Material Symbols
   }, [currentDate, fetchLiturgia]);
+
+  // Schedule notification when enabled or time changes
+  useEffect(() => {
+    if (notificationsEnabled) {
+      scheduleNotification();
+    }
+  }, [notificationsEnabled, notificationTime, scheduleNotification]);
 
   const fontSizeClasses = {
     sm: 'text-sm',
@@ -757,24 +886,56 @@ const LiturgiaApp = () => {
             
             {/* Dark mode */}
             <button
-              onClick={() => setDarkMode(!darkMode)}
+              onClick={() => updateDarkMode(!darkMode)}
               className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
             >
               {darkMode ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} className="text-gray-700" />}
             </button>
 
-            {/* Font size */}
-            <button
-              onClick={() => {
-                const sizes = ['sm', 'base', 'lg', 'xl', '2xl'];
-                const currentIndex = sizes.indexOf(fontSize);
-                const nextIndex = (currentIndex + 1) % sizes.length;
-                setFontSize(sizes[nextIndex]);
-              }}
-              className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
-            >
-              <Type size={20} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
-            </button>
+            {/* Font size controls - Simplificado com Material Symbols */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const sizes = ['sm', 'base', 'lg', 'xl', '2xl'];
+                  const currentIndex = sizes.indexOf(fontSize);
+                  if (currentIndex > 0) {
+                    updateFontSize(sizes[currentIndex - 1]);
+                  }
+                }}
+                disabled={fontSize === 'sm'}
+                className={`p-2 rounded-full transition-colors ${
+                  fontSize === 'sm' 
+                    ? 'text-gray-400 cursor-not-allowed opacity-50' 
+                    : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
+                }`}
+                title="Diminuir texto"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                  text_decrease
+                </span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  const sizes = ['sm', 'base', 'lg', 'xl', '2xl'];
+                  const currentIndex = sizes.indexOf(fontSize);
+                  if (currentIndex < sizes.length - 1) {
+                    updateFontSize(sizes[currentIndex + 1]);
+                  }
+                }}
+                disabled={fontSize === '2xl'}
+                className={`p-2 rounded-full transition-colors ${
+                  fontSize === '2xl' 
+                    ? 'text-gray-400 cursor-not-allowed opacity-50'
+                    : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
+                }`}
+                title="Aumentar texto"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                  text_increase
+                </span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -906,9 +1067,27 @@ const LiturgiaApp = () => {
                   <input
                     type="time"
                     value={notificationTime}
-                    onChange={(e) => updateNotificationTime(e.target.value)}
+                    onChange={(e) => {
+                      updateNotificationTime(e.target.value);
+                      // Re-schedule with new time
+                      setTimeout(() => scheduleNotification(), 100);
+                    }}
                     className={`w-full p-2 rounded-lg border text-xs ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   />
+                  <div className="mt-2 space-y-1">
+                    <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Próximo lembrete: às {notificationTime} {new Date().toISOString().split('T')[0] >= new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0') ? 'de amanhã' : 'de hoje'}
+                    </p>
+                    <button
+                      onClick={() => {
+                        console.log('🧪 Teste de notificação iniciado');
+                        showNotification();
+                      }}
+                      className={`text-xs px-2 py-1 rounded ${darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white transition-colors`}
+                    >
+                      Testar Agora
+                    </button>
+                  </div>
                 </div>
               )}
 
