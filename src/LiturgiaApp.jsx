@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, Calendar, Sun, Moon, Type, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, Wifi, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sun, Moon, Type, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays } from 'lucide-react';
 
 const LiturgiaApp = () => {
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedDate, setSelectedDate] = useState('');
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [fontSize, setFontSize] = useState('base');
   const [activeSection, setActiveSection] = useState('todas');
@@ -14,7 +13,7 @@ const LiturgiaApp = () => {
   const [error, setError] = useState(null);
   
   // PWA states
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isInstallable, setIsInstallable] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   
@@ -23,6 +22,7 @@ const LiturgiaApp = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [playingSection, setPlayingSection] = useState(null);
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
 
   // Simple localStorage hook (replacing hatch dependency)
   const [notificationTime, setNotificationTime] = useState('07:00');
@@ -33,12 +33,16 @@ const LiturgiaApp = () => {
     try {
       const savedNotificationTime = localStorage.getItem('notificationTime');
       const savedAudioEnabled = localStorage.getItem('audioEnabled');
+      const savedNotificationsEnabled = localStorage.getItem('notificationsEnabled');
       
       if (savedNotificationTime) {
         setNotificationTime(savedNotificationTime);
       }
       if (savedAudioEnabled !== null) {
         setAudioEnabled(JSON.parse(savedAudioEnabled));
+      }
+      if (savedNotificationsEnabled !== null) {
+        setNotificationsEnabled(JSON.parse(savedNotificationsEnabled));
       }
     } catch (error) {
       console.warn('Failed to load settings from localStorage:', error);
@@ -62,6 +66,16 @@ const LiturgiaApp = () => {
       localStorage.setItem('audioEnabled', JSON.stringify(enabled));
     } catch (error) {
       console.warn('Failed to save audio setting:', error);
+    }
+  }, []);
+
+  // Save notifications setting to localStorage
+  const updateNotificationsEnabled = useCallback((enabled) => {
+    setNotificationsEnabled(enabled);
+    try {
+      localStorage.setItem('notificationsEnabled', JSON.stringify(enabled));
+    } catch (error) {
+      console.warn('Failed to save notifications setting:', error);
     }
   }, []);
 
@@ -160,9 +174,8 @@ const LiturgiaApp = () => {
       try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-          setNotificationsEnabled(true);
+          updateNotificationsEnabled(true);
           scheduleNotification();
-          alert('Notificações ativadas! Você receberá lembretes da liturgia diária.');
         } else {
           alert('Permissão para notificações negada.');
         }
@@ -172,6 +185,14 @@ const LiturgiaApp = () => {
       }
     } else {
       alert('Seu navegador não suporta notificações.');
+    }
+  };
+
+  const toggleNotifications = () => {
+    if (notificationsEnabled) {
+      updateNotificationsEnabled(false);
+    } else {
+      requestNotificationPermission();
     }
   };
 
@@ -246,21 +267,22 @@ const LiturgiaApp = () => {
       utterance.onerror = () => {
         setIsPlaying(false);
         setPlayingSection(null);
-        alert('Erro ao reproduzir áudio.');
       };
 
       speechSynthesis.speak(utterance);
     } catch (error) {
       console.error('Erro ao reproduzir áudio:', error);
-      alert('Erro ao reproduzir áudio.');
     }
   }, [audioEnabled, isPlaying, playingSection]);
 
-  // Share functionality
+  // Share functionality - melhorada para compartilhar texto completo
   const shareReading = async (title, text) => {
+    // Remove HTML tags e pega texto completo
+    const cleanText = text.replace(/<[^>]*>/g, '').trim();
+    
     const shareData = {
       title: `Liturgia Diária - ${title}`,
-      text: `${title}\n\n${text.replace(/<[^>]*>/g, '').substring(0, 200)}...`,
+      text: `${title}\n\n${cleanText}`,
       url: window.location.href
     };
 
@@ -271,19 +293,30 @@ const LiturgiaApp = () => {
         // Fallback: copy to clipboard
         const textToCopy = `${shareData.title}\n\n${shareData.text}\n\n${shareData.url}`;
         await navigator.clipboard.writeText(textToCopy);
-        alert('Texto copiado para a área de transferência!');
+        alert('Texto completo copiado para a área de transferência!');
       }
     } catch (err) {
       console.error('Erro ao compartilhar:', err);
-      alert('Erro ao compartilhar conteúdo.');
+      // Fallback manual para dispositivos que não suportam clipboard
+      const textToCopy = `${shareData.title}\n\n${shareData.text}\n\n${shareData.url}`;
+      const textArea = document.createElement('textarea');
+      textArea.value = textToCopy;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        alert('Texto completo copiado para a área de transferência!');
+      } catch (fallbackErr) {
+        alert('Erro ao compartilhar conteúdo.');
+      }
+      document.body.removeChild(textArea);
     }
   };
 
-  // Calendar functionality - Generate liturgical calendar
+  // Calendar functionality - melhorado com navegação entre meses
   const generateLiturgicalCalendar = () => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
+    const currentMonth = calendarMonth.getMonth();
+    const currentYear = calendarMonth.getFullYear();
     const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
     const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
     const daysInMonth = lastDayOfMonth.getDate();
@@ -300,8 +333,8 @@ const LiturgiaApp = () => {
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentYear, currentMonth, day);
       const dateString = date.toISOString().split('T')[0];
-      const isToday = dateString === currentDate;
-      const isSelected = dateString === selectedDate;
+      const isToday = dateString === new Date().toISOString().split('T')[0];
+      const isSelected = dateString === currentDate;
 
       days.push({
         day,
@@ -316,6 +349,12 @@ const LiturgiaApp = () => {
       days,
       monthName: firstDayOfMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
     };
+  };
+
+  const navigateMonth = (direction) => {
+    const newMonth = new Date(calendarMonth);
+    newMonth.setMonth(calendarMonth.getMonth() + direction);
+    setCalendarMonth(newMonth);
   };
 
   const getLiturgicalSeason = (date) => {
@@ -434,13 +473,6 @@ const LiturgiaApp = () => {
     return sections;
   };
 
-  const handleDateChange = (e) => {
-    const newDate = e.target.value;
-    setSelectedDate(newDate);
-    setCurrentDate(newDate);
-    setShowDatePicker(false);
-  };
-
   const renderMultipleReadings = (readings, sectionKey, sectionName) => {
     if (!readings || readings.length === 0) return null;
 
@@ -462,18 +494,16 @@ const LiturgiaApp = () => {
               
               {/* Action buttons */}
               <div className="flex items-center gap-2">
-                {audioEnabled && (
-                  <button
-                    onClick={() => speakText(reading.texto, `${sectionKey}-${index}`)}
-                    className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
-                    title={playingSection === `${sectionKey}-${index}` && isPlaying ? "Pausar áudio" : "Reproduzir áudio"}
-                  >
-                    {playingSection === `${sectionKey}-${index}` && isPlaying ? 
-                      <Pause size={16} className="text-blue-600" /> : 
-                      <Play size={16} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
-                    }
-                  </button>
-                )}
+                <button
+                  onClick={() => speakText(reading.texto, `${sectionKey}-${index}`)}
+                  className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+                  title={playingSection === `${sectionKey}-${index}` && isPlaying ? "Pausar áudio" : "Reproduzir áudio"}
+                >
+                  {playingSection === `${sectionKey}-${index}` && isPlaying ? 
+                    <Pause size={16} className="text-blue-600" /> : 
+                    <Play size={16} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+                  }
+                </button>
                 
                 <button
                   onClick={() => shareReading(reading.titulo || sectionName, reading.texto)}
@@ -525,17 +555,15 @@ const LiturgiaApp = () => {
                     {extra.titulo}
                   </h4>
                   <div className="flex items-center gap-2">
-                    {audioEnabled && (
-                      <button
-                        onClick={() => speakText(extra.texto, `prayer-extra-${index}`)}
-                        className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
-                      >
-                        {playingSection === `prayer-extra-${index}` && isPlaying ? 
-                          <Pause size={14} className="text-blue-600" /> : 
-                          <Play size={14} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
-                        }
-                      </button>
-                    )}
+                    <button
+                      onClick={() => speakText(extra.texto, `prayer-extra-${index}`)}
+                      className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+                    >
+                      {playingSection === `prayer-extra-${index}` && isPlaying ? 
+                        <Pause size={14} className="text-blue-600" /> : 
+                        <Play size={14} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+                      }
+                    </button>
                     <button
                       onClick={() => shareReading(extra.titulo, extra.texto)}
                       className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
@@ -557,17 +585,15 @@ const LiturgiaApp = () => {
                     {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
                   </h4>
                   <div className="flex items-center gap-2">
-                    {audioEnabled && (
-                      <button
-                        onClick={() => speakText(value, `prayer-${key}`)}
-                        className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
-                      >
-                        {playingSection === `prayer-${key}` && isPlaying ? 
-                          <Pause size={14} className="text-blue-600" /> : 
-                          <Play size={14} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
-                        }
-                      </button>
-                    )}
+                    <button
+                      onClick={() => speakText(value, `prayer-${key}`)}
+                      className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+                    >
+                      {playingSection === `prayer-${key}` && isPlaying ? 
+                        <Pause size={14} className="text-blue-600" /> : 
+                        <Play size={14} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+                      }
+                    </button>
                     <button
                       onClick={() => shareReading(key, value)}
                       className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
@@ -600,17 +626,15 @@ const LiturgiaApp = () => {
                 {key}
               </h4>
               <div className="flex items-center gap-2">
-                {audioEnabled && (
-                  <button
-                    onClick={() => speakText(value, `antiphon-${key}`)}
-                    className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
-                  >
-                    {playingSection === `antiphon-${key}` && isPlaying ? 
-                      <Pause size={14} className="text-blue-600" /> : 
-                      <Play size={14} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
-                    }
-                  </button>
-                )}
+                <button
+                  onClick={() => speakText(value, `antiphon-${key}`)}
+                  className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+                >
+                  {playingSection === `antiphon-${key}` && isPlaying ? 
+                    <Pause size={14} className="text-blue-600" /> : 
+                    <Play size={14} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+                  }
+                </button>
                 <button
                   onClick={() => shareReading(key, value)}
                   className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
@@ -663,7 +687,7 @@ const LiturgiaApp = () => {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 to-indigo-100'}`}>
-      {/* Header */}
+      {/* Header - Simplificado para mobile */}
       <div className={`sticky top-0 z-50 ${darkMode ? 'bg-gray-800/95' : 'bg-white/95'} backdrop-blur-md border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-3">
@@ -684,34 +708,12 @@ const LiturgiaApp = () => {
           </div>
 
           <div className="flex items-center space-x-2">
-            {/* Connection status */}
-            <div className={`p-2 rounded-full ${isOnline ? 'text-green-500' : 'text-red-500'}`}>
-              {isOnline ? <Wifi size={16} /> : <WifiOff size={16} />}
-            </div>
-            
-            {/* Notifications */}
-            <button
-              onClick={notificationsEnabled ? () => setNotificationsEnabled(false) : requestNotificationPermission}
-              className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
-              title={notificationsEnabled ? "Desativar notificações" : "Ativar notificações"}
-            >
-              {notificationsEnabled ? 
-                <Bell size={16} className="text-blue-500" /> : 
-                <BellOff size={16} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
-              }
-            </button>
-
-            {/* Audio toggle */}
-            <button
-              onClick={() => updateAudioEnabled(!audioEnabled)}
-              className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
-              title={audioEnabled ? "Desativar áudio" : "Ativar áudio"}
-            >
-              {audioEnabled ? 
-                <Volume2 size={16} className="text-green-500" /> : 
-                <VolumeX size={16} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
-              }
-            </button>
+            {/* Mostrar apenas quando offline */}
+            {!isOnline && (
+              <div className="p-2 rounded-full text-red-500" title="Sem conexão">
+                <WifiOff size={16} />
+              </div>
+            )}
             
             {/* Install button */}
             {isInstallable && (
@@ -724,20 +726,12 @@ const LiturgiaApp = () => {
               </button>
             )}
             
-            {/* Calendar */}
+            {/* Calendar - apenas um calendário litúrgico */}
             <button
               onClick={() => setShowCalendar(!showCalendar)}
               className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
             >
               <CalendarDays size={20} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
-            </button>
-
-            {/* Date picker */}
-            <button
-              onClick={() => setShowDatePicker(!showDatePicker)}
-              className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
-            >
-              <Calendar size={20} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
             </button>
             
             {/* Dark mode */}
@@ -763,12 +757,29 @@ const LiturgiaApp = () => {
           </div>
         </div>
 
-        {/* Calendar view */}
+        {/* Calendar view - melhorado com navegação */}
         {showCalendar && (
           <div className={`p-4 border-t ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-            <h4 className={`font-bold mb-3 text-center ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {calendar.monthName}
-            </h4>
+            <div className="flex items-center justify-between mb-3">
+              <button
+                onClick={() => navigateMonth(-1)}
+                className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+              >
+                <ChevronLeft size={20} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
+              </button>
+              
+              <h4 className={`font-bold text-center ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                {calendar.monthName}
+              </h4>
+              
+              <button
+                onClick={() => navigateMonth(1)}
+                className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+              >
+                <ChevronRight size={20} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
+              </button>
+            </div>
+            
             <div className="grid grid-cols-7 gap-1 text-center">
               {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
                 <div key={day} className={`p-2 text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -814,37 +825,11 @@ const LiturgiaApp = () => {
           </div>
         )}
 
-        {/* Date Picker */}
-        {showDatePicker && (
-          <div className={`p-4 border-t ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={handleDateChange}
-              className={`w-full p-3 rounded-xl border-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
-            />
-          </div>
-        )}
-
-        {/* Notification Settings */}
-        {notificationsEnabled && (
-          <div className={`p-4 border-t ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-            <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-              Horário do lembrete diário:
-            </label>
-            <input
-              type="time"
-              value={notificationTime}
-              onChange={(e) => updateNotificationTime(e.target.value)}
-              className={`w-full p-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
-            />
-          </div>
-        )}
-
-        {/* Navigation menu */}
+        {/* Navigation menu - com configurações de notificação e áudio */}
         {showMenu && (
           <div className={`p-4 border-t ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-            <div className="grid grid-cols-2 gap-2">
+            {/* Seções de navegação */}
+            <div className="grid grid-cols-2 gap-2 mb-4">
               {sections.map((section) => {
                 const IconComponent = section.icon;
                 
@@ -868,6 +853,62 @@ const LiturgiaApp = () => {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Configurações no menu */}
+            <div className="space-y-3 pt-3 border-t border-gray-600">
+              {/* Notificações */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {notificationsEnabled ? 
+                    <Bell size={16} className="text-blue-500" /> : 
+                    <BellOff size={16} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
+                  }
+                  <span className={`text-sm ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                    Notificações
+                  </span>
+                </div>
+                <button
+                  onClick={toggleNotifications}
+                  className={`p-1 rounded ${notificationsEnabled ? 'bg-blue-600' : darkMode ? 'bg-gray-600' : 'bg-gray-300'} transition-colors`}
+                >
+                  <div className={`w-4 h-4 rounded ${notificationsEnabled ? 'bg-white' : 'bg-gray-400'} transition-transform ${notificationsEnabled ? 'translate-x-0' : '-translate-x-1'}`}></div>
+                </button>
+              </div>
+
+              {/* Configuração de horário da notificação */}
+              {notificationsEnabled && (
+                <div className="ml-6">
+                  <label className={`block text-xs mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    Horário do lembrete:
+                  </label>
+                  <input
+                    type="time"
+                    value={notificationTime}
+                    onChange={(e) => updateNotificationTime(e.target.value)}
+                    className={`w-full p-2 rounded-lg border text-xs ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  />
+                </div>
+              )}
+
+              {/* Áudio */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {audioEnabled ? 
+                    <Volume2 size={16} className="text-green-500" /> : 
+                    <VolumeX size={16} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
+                  }
+                  <span className={`text-sm ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                    Áudio (Text-to-Speech)
+                  </span>
+                </div>
+                <button
+                  onClick={() => updateAudioEnabled(!audioEnabled)}
+                  className={`p-1 rounded ${audioEnabled ? 'bg-green-600' : darkMode ? 'bg-gray-600' : 'bg-gray-300'} transition-colors`}
+                >
+                  <div className={`w-4 h-4 rounded ${audioEnabled ? 'bg-white' : 'bg-gray-400'} transition-transform ${audioEnabled ? 'translate-x-0' : '-translate-x-1'}`}></div>
+                </button>
+              </div>
             </div>
           </div>
         )}
