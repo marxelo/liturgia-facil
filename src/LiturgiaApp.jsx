@@ -349,11 +349,27 @@ const LiturgiaApp = () => {
       // NOVA LÓGICA: Service Worker PRIMEIRO para PWA, Notification API para browser
       if (isPWA && hasServiceWorker) {
         // PWA: Usar APENAS Service Worker
+        console.log('⏰ [NOTIFICAÇÃO] Configurando timeout de 10s para detectar travamento...');
+        
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('TIMEOUT: showNotification travou por mais de 10 segundos'));
+          }, 10000);
+        });
+        
         try {
           console.log('📱 [NOTIFICAÇÃO] PWA detectado - usando Service Worker...');
-          const registration = await navigator.serviceWorker.ready;
           
-          await registration.showNotification('Liturgia Diária 🙏', {
+          console.log('🔍 [NOTIFICAÇÃO] Aguardando Service Worker ready...');
+          const registration = await navigator.serviceWorker.ready;
+          console.log('✅ [NOTIFICAÇÃO] Service Worker ready obtido:', {
+            active: registration.active?.state,
+            scope: registration.scope,
+            updateViaCache: registration.updateViaCache
+          });
+          
+          // Preparar dados da notificação
+          const notificationOptions = {
             body: 'Hora de conferir a liturgia de hoje!',
             icon: '/icons/icon-192.png',
             badge: '/icons/icon-192.png',
@@ -366,24 +382,67 @@ const LiturgiaApp = () => {
               timestamp: Date.now(),
               url: window.location.href,
               action: 'daily-reminder'
-            },
-            actions: [
-              { action: 'open', title: 'Abrir App', icon: '/icons/icon-192.png' },
-              { action: 'dismiss', title: 'Dispensar', icon: '/icons/icon-192.png' }
-            ]
+            }
+          };
+          
+          console.log('📋 [NOTIFICAÇÃO] Tentando showNotification com opções:', notificationOptions);
+          console.log('🚀 [NOTIFICAÇÃO] ENVIANDO AGORA...');
+          
+          // Criar promise com timeout para detectar travamento
+          const notificationPromise = registration.showNotification('Liturgia Diária 🙏', notificationOptions);
+          
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+              reject(new Error('TIMEOUT: showNotification travou por mais de 10 segundos'));
+            }, 10000);
           });
           
+          // Race entre notificação e timeout
+          await Promise.race([notificationPromise, timeoutPromise]);
+          
           console.log(`✅ [NOTIFICAÇÃO] PWA ENVIADA COM SUCESSO!`);
-          console.log('📋 [NOTIFICAÇÃO] Dados:', {
-            title: 'Liturgia Diária 🙏',
-            body: 'Hora de conferir a liturgia de hoje!',
-            tag: 'liturgia-daily-pwa',
-            source: 'liturgia-app-pwa'
-          });
+          console.log('📋 [NOTIFICAÇÃO] Confirmação de envio concluída');
           
         } catch (pwaError) {
           console.error('❌ [NOTIFICAÇÃO] PWA Service Worker falhou:', pwaError);
-          throw pwaError;
+          console.error('❌ [NOTIFICAÇÃO] Tipo do erro:', pwaError.name);
+          console.error('❌ [NOTIFICAÇÃO] Mensagem:', pwaError.message);
+          console.error('❌ [NOTIFICAÇÃO] Stack:', pwaError.stack);
+          
+          // Verificar se foi timeout
+          if (pwaError.message.includes('TIMEOUT')) {
+            console.error('⏰ [NOTIFICAÇÃO] DETECTADO TRAVAMENTO!');
+            console.error('🔍 [NOTIFICAÇÃO] O showNotification() travou - possível problema com Service Worker');
+            
+            // Tentar diagnóstico adicional
+            try {
+              const registration = await navigator.serviceWorker.ready;
+              console.log('🔍 [NOTIFICAÇÃO] Status do Service Worker pós-timeout:', {
+                active: registration.active?.state,
+                installing: registration.installing?.state,
+                waiting: registration.waiting?.state
+              });
+            } catch (diagError) {
+              console.error('❌ [NOTIFICAÇÃO] Erro no diagnóstico:', diagError);
+            }
+          }
+          
+          // Tentar versão mais simples como fallback
+          try {
+            console.log('🔄 [NOTIFICAÇÃO] Tentando versão simplificada...');
+            const registration = await navigator.serviceWorker.ready;
+            
+            await registration.showNotification('Liturgia Diária', {
+              body: 'Hora de conferir a liturgia de hoje!',
+              tag: 'liturgia-simple'
+            });
+            
+            console.log('✅ [NOTIFICAÇÃO] Versão simplificada funcionou!');
+            
+          } catch (simpleError) {
+            console.error('❌ [NOTIFICAÇÃO] Versão simplificada também falhou:', simpleError);
+            throw pwaError; // Re-throw original error
+          }
         }
         
       } else {
@@ -1046,6 +1105,23 @@ const LiturgiaApp = () => {
                   navigator.serviceWorker.ready.then(reg => {
                     console.log('- Service Worker ativo:', reg.active?.scriptURL);
                     console.log('- SW State:', reg.active?.state);
+                    console.log('- SW Scope:', reg.scope);
+                    console.log('- SW Installing:', reg.installing?.state);
+                    console.log('- SW Waiting:', reg.waiting?.state);
+                  }).catch(swError => {
+                    console.error('- SW Ready Error:', swError);
+                  });
+                  
+                  // Verificar registrations
+                  navigator.serviceWorker.getRegistrations().then(registrations => {
+                    console.log('- SW Registrations total:', registrations.length);
+                    registrations.forEach((reg, index) => {
+                      console.log(`- SW ${index}:`, {
+                        scope: reg.scope,
+                        active: reg.active?.state,
+                        updateViaCache: reg.updateViaCache
+                      });
+                    });
                   });
                 }
                 console.log('='.repeat(60));
