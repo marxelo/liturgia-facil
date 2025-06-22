@@ -321,7 +321,8 @@ const LiturgiaApp = () => {
   }, [notificationsEnabled, notificationTime, notificationTimer]);
 
   const showNotification = async () => {
-    console.log('🔔 Tentando mostrar notificação...');
+    const timestamp = new Date().toLocaleString();
+    console.log(`🔔 [${timestamp}] INICIANDO NOTIFICAÇÃO LITURGIA`);
     
     try {
       // Verificar permissão primeiro
@@ -335,7 +336,12 @@ const LiturgiaApp = () => {
         return;
       }
 
-      console.log('✅ Permissão OK, tentando enviar notificação...');
+      console.log(`✅ [${timestamp}] Permissão OK, enviando notificação da LITURGIA DIÁRIA...`);
+      console.log('🔍 Ambiente:', {
+        standalone: window.matchMedia('(display-mode: standalone)').matches,
+        serviceWorker: 'serviceWorker' in navigator,
+        userAgent: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop'
+      });
 
       // Tentar método mais simples primeiro - direto Notification API
       try {
@@ -345,8 +351,14 @@ const LiturgiaApp = () => {
           body: 'Hora de conferir a liturgia de hoje!',
           icon: '/icons/icon-192.png',
           tag: 'liturgia-daily',
-          requireInteraction: false, // Removido requireInteraction que pode dar problema
-          silent: false
+          requireInteraction: false,
+          silent: false,
+          badge: '/icons/icon-192.png',
+          data: {
+            source: 'liturgia-app',
+            timestamp: Date.now(),
+            url: window.location.href
+          }
         });
         
         // Event listeners para debug
@@ -357,11 +369,17 @@ const LiturgiaApp = () => {
         };
         
         notification.onshow = () => {
-          console.log('✅ Notificação mostrada com sucesso (Notification API)');
+          console.log(`✅ [${timestamp}] NOTIFICAÇÃO LITURGIA MOSTRADA COM SUCESSO (Notification API)`);
+          console.log('📋 Dados da notificação:', {
+            title: notification.title,
+            body: notification.body,
+            tag: notification.tag,
+            icon: notification.icon
+          });
         };
         
         notification.onerror = (error) => {
-          console.error('❌ Erro na notificação:', error);
+          console.error(`❌ [${timestamp}] ERRO NA NOTIFICAÇÃO LITURGIA:`, error);
         };
 
         // Auto-close após 10 segundos
@@ -382,12 +400,29 @@ const LiturgiaApp = () => {
               body: 'Hora de conferir a liturgia de hoje!',
               icon: '/icons/icon-192.png',
               badge: '/icons/icon-192.png',
-              tag: 'liturgia-daily',
+              tag: 'liturgia-daily-scheduled',
               vibrate: [200, 100, 200],
-              data: { url: window.location.href }
+              requireInteraction: false,
+              silent: false,
+              data: {
+                source: 'liturgia-app-scheduled',
+                timestamp: Date.now(),
+                url: window.location.href,
+                action: 'daily-reminder'
+              },
+              actions: [
+                { action: 'open', title: 'Abrir App', icon: '/icons/icon-192.png' },
+                { action: 'dismiss', title: 'Dispensar', icon: '/icons/icon-192.png' }
+              ]
             });
             
-            console.log('✅ Notificação Service Worker enviada com sucesso');
+            console.log(`✅ [${timestamp}] NOTIFICAÇÃO LITURGIA ENVIADA VIA SERVICE WORKER`);
+            console.log('📋 Dados enviados:', {
+              title: 'Liturgia Diária 🙏',
+              body: 'Hora de conferir a liturgia de hoje!',
+              tag: 'liturgia-daily-scheduled',
+              source: 'liturgia-app-scheduled'
+            });
           } catch (swError) {
             console.error('❌ Service Worker também falhou:', swError);
             throw swError;
@@ -1149,13 +1184,24 @@ const LiturgiaApp = () => {
                       
                       <button
                         onClick={() => {
-                          console.log('🔍 STATUS DEBUG:');
+                          console.log('🔍 STATUS DEBUG COMPLETO:');
                           console.log('- Notification support:', 'Notification' in window);
                           console.log('- Permission:', Notification.permission);
                           console.log('- ServiceWorker support:', 'serviceWorker' in navigator);
                           console.log('- Notifications enabled:', notificationsEnabled);
                           console.log('- Current timer:', notificationTimer);
                           console.log('- Notification time:', notificationTime);
+                          console.log('- PWA Mode:', window.matchMedia('(display-mode: standalone)').matches);
+                          console.log('- User Agent:', navigator.userAgent);
+                          console.log('- URL atual:', window.location.href);
+                          
+                          // Verificar Service Worker ativo
+                          if ('serviceWorker' in navigator) {
+                            navigator.serviceWorker.ready.then(reg => {
+                              console.log('- Service Worker ativo:', reg.active?.scriptURL);
+                              console.log('- SW State:', reg.active?.state);
+                            });
+                          }
                         }}
                         className={`text-xs px-2 py-1 rounded ${darkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-400 hover:bg-gray-500'} text-white transition-colors`}
                       >
