@@ -219,21 +219,49 @@ const LiturgiaApp = () => {
 
   // Notification functionality
   const requestNotificationPermission = async () => {
-    if ('Notification' in window) {
-      try {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          updateNotificationsEnabled(true);
-          scheduleNotification();
-        } else {
-          alert('Permissão para notificações negada.');
-        }
-      } catch (error) {
-        console.error('Erro ao solicitar permissão de notificação:', error);
-        alert('Erro ao solicitar permissão para notificações.');
-      }
-    } else {
+    console.log('🔔 Solicitando permissão para notificações...');
+    
+    if (!('Notification' in window)) {
+      console.error('❌ Browser não suporta notificações');
       alert('Seu navegador não suporta notificações.');
+      return;
+    }
+
+    try {
+      console.log('📋 Estado atual da permissão:', Notification.permission);
+      
+      // Se já tem permissão, apenas ativar
+      if (Notification.permission === 'granted') {
+        console.log('✅ Permissão já concedida');
+        updateNotificationsEnabled(true);
+        scheduleNotification();
+        return;
+      }
+
+      // Solicitar permissão
+      console.log('🙋 Solicitando permissão...');
+      const permission = await Notification.requestPermission();
+      console.log('📋 Nova permissão:', permission);
+      
+      if (permission === 'granted') {
+        console.log('✅ Permissão concedida com sucesso');
+        updateNotificationsEnabled(true);
+        
+        // Teste imediato para confirmar funcionamento
+        setTimeout(() => {
+          console.log('🧪 Fazendo teste imediato após permissão');
+          showNotification();
+        }, 500);
+        
+        // Agendar normalmente
+        scheduleNotification();
+      } else {
+        console.warn('⚠️ Permissão negada:', permission);
+        alert('Permissão para notificações negada. Você pode habilitar nas configurações do navegador.');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao solicitar permissão:', error);
+      alert('Erro ao solicitar permissão para notificações: ' + error.message);
     }
   };
 
@@ -296,65 +324,93 @@ const LiturgiaApp = () => {
     console.log('🔔 Tentando mostrar notificação...');
     
     try {
-      // Verificar permissão
-      if (Notification.permission !== 'granted') {
-        console.warn('⚠️ Permissão de notificação não concedida');
+      // Verificar permissão primeiro
+      if (!('Notification' in window)) {
+        console.error('❌ Browser não suporta notificações');
         return;
       }
 
-      // Para mobile com Service Worker
-      if ('serviceWorker' in navigator) {
-        try {
-          const registration = await navigator.serviceWorker.ready;
-          console.log('📱 Usando Service Worker para notificação');
-          
-          await registration.showNotification('Liturgia Diária 🙏', {
-            body: 'Hora de conferir a liturgia de hoje!',
-            icon: '/icons/icon-192.png',
-            badge: '/icons/icon-192.png',
-            tag: 'liturgia-daily',
-            requireInteraction: true,
-            vibrate: [200, 100, 200],
-            actions: [
-              { action: 'open', title: 'Abrir App' },
-              { action: 'close', title: 'Fechar' }
-            ]
-          });
-          
-          console.log('✅ Notificação Service Worker enviada com sucesso');
-        } catch (swError) {
-          console.warn('⚠️ Service Worker falhou, tentando Notification API:', swError);
-          
-          // Fallback para Notification API
-          new Notification('Liturgia Diária 🙏', {
-            body: 'Hora de conferir a liturgia de hoje!',
-            icon: '/icons/icon-192.png',
-            tag: 'liturgia-daily'
-          });
-          
-          console.log('✅ Notificação desktop enviada com sucesso');
-        }
-      } else {
-        // Apenas Notification API para browsers mais antigos
-        console.log('🖥️ Usando Notification API direta');
+      if (Notification.permission !== 'granted') {
+        console.warn('⚠️ Permissão de notificação não concedida. Estado:', Notification.permission);
+        return;
+      }
+
+      console.log('✅ Permissão OK, tentando enviar notificação...');
+
+      // Tentar método mais simples primeiro - direto Notification API
+      try {
+        console.log('🖥️ Tentando Notification API direta...');
         
-        new Notification('Liturgia Diária 🙏', {
+        const notification = new Notification('Liturgia Diária 🙏', {
           body: 'Hora de conferir a liturgia de hoje!',
           icon: '/icons/icon-192.png',
-          tag: 'liturgia-daily'
+          tag: 'liturgia-daily',
+          requireInteraction: false, // Removido requireInteraction que pode dar problema
+          silent: false
         });
         
-        console.log('✅ Notificação enviada com sucesso');
+        // Event listeners para debug
+        notification.onclick = () => {
+          console.log('🔔 Notificação clicada');
+          window.focus();
+          notification.close();
+        };
+        
+        notification.onshow = () => {
+          console.log('✅ Notificação mostrada com sucesso (Notification API)');
+        };
+        
+        notification.onerror = (error) => {
+          console.error('❌ Erro na notificação:', error);
+        };
+
+        // Auto-close após 10 segundos
+        setTimeout(() => {
+          notification.close();
+        }, 10000);
+
+      } catch (directError) {
+        console.warn('⚠️ Notification API direta falhou:', directError);
+        
+        // Fallback para Service Worker (apenas se estiver disponível)
+        if ('serviceWorker' in navigator) {
+          try {
+            console.log('📱 Tentando Service Worker...');
+            const registration = await navigator.serviceWorker.ready;
+            
+            await registration.showNotification('Liturgia Diária 🙏', {
+              body: 'Hora de conferir a liturgia de hoje!',
+              icon: '/icons/icon-192.png',
+              badge: '/icons/icon-192.png',
+              tag: 'liturgia-daily',
+              vibrate: [200, 100, 200],
+              data: { url: window.location.href }
+            });
+            
+            console.log('✅ Notificação Service Worker enviada com sucesso');
+          } catch (swError) {
+            console.error('❌ Service Worker também falhou:', swError);
+            throw swError;
+          }
+        } else {
+          throw directError;
+        }
       }
       
       // Reagendar para o próximo dia
       console.log('🔄 Reagendando para amanhã...');
-      setTimeout(scheduleNotification, 1000);
+      setTimeout(() => {
+        scheduleNotification();
+      }, 1000);
       
     } catch (error) {
-      console.error('❌ Erro ao mostrar notificação:', error);
+      console.error('❌ Erro geral ao mostrar notificação:', error);
+      console.error('Stack trace:', error.stack);
+      
       // Ainda assim reagendar para o próximo dia
-      setTimeout(scheduleNotification, 1000);
+      setTimeout(() => {
+        scheduleNotification();
+      }, 1000);
     }
   };
 
@@ -1078,15 +1134,34 @@ const LiturgiaApp = () => {
                     <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                       Próximo lembrete: às {notificationTime} {new Date().toISOString().split('T')[0] >= new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0') ? 'de amanhã' : 'de hoje'}
                     </p>
-                    <button
-                      onClick={() => {
-                        console.log('🧪 Teste de notificação iniciado');
-                        showNotification();
-                      }}
-                      className={`text-xs px-2 py-1 rounded ${darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white transition-colors`}
-                    >
-                      Testar Agora
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          console.log('🧪 Teste de notificação iniciado');
+                          console.log('🔍 Debug - Permissão atual:', Notification.permission);
+                          console.log('🔍 Debug - Notificações habilitadas:', notificationsEnabled);
+                          showNotification();
+                        }}
+                        className={`text-xs px-2 py-1 rounded ${darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white transition-colors`}
+                      >
+                        Testar Agora
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          console.log('🔍 STATUS DEBUG:');
+                          console.log('- Notification support:', 'Notification' in window);
+                          console.log('- Permission:', Notification.permission);
+                          console.log('- ServiceWorker support:', 'serviceWorker' in navigator);
+                          console.log('- Notifications enabled:', notificationsEnabled);
+                          console.log('- Current timer:', notificationTimer);
+                          console.log('- Notification time:', notificationTime);
+                        }}
+                        className={`text-xs px-2 py-1 rounded ${darkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-400 hover:bg-gray-500'} text-white transition-colors`}
+                      >
+                        Debug
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
