@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, Calendar, Sun, Moon, Type, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, Wifi, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays } from 'lucide-react';
 
 const LiturgiaApp = () => {
@@ -21,14 +21,49 @@ const LiturgiaApp = () => {
   // New features states
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentAudio, setCurrentAudio] = useState(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [playingSection, setPlayingSection] = useState(null);
 
-  // Hook para usar o hatch.useStoredState
-  const { useStoredState } = hatch;
-  const [notificationTime, setNotificationTime] = useStoredState('notificationTime', '07:00');
-  const [audioEnabled, setAudioEnabled] = useStoredState('audioEnabled', true);
+  // Simple localStorage hook (replacing hatch dependency)
+  const [notificationTime, setNotificationTime] = useState('07:00');
+  const [audioEnabled, setAudioEnabled] = useState(true);
+
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedNotificationTime = localStorage.getItem('notificationTime');
+      const savedAudioEnabled = localStorage.getItem('audioEnabled');
+      
+      if (savedNotificationTime) {
+        setNotificationTime(savedNotificationTime);
+      }
+      if (savedAudioEnabled !== null) {
+        setAudioEnabled(JSON.parse(savedAudioEnabled));
+      }
+    } catch (error) {
+      console.warn('Failed to load settings from localStorage:', error);
+    }
+  }, []);
+
+  // Save notification time to localStorage
+  const updateNotificationTime = useCallback((time) => {
+    setNotificationTime(time);
+    try {
+      localStorage.setItem('notificationTime', time);
+    } catch (error) {
+      console.warn('Failed to save notification time:', error);
+    }
+  }, []);
+
+  // Save audio setting to localStorage
+  const updateAudioEnabled = useCallback((enabled) => {
+    setAudioEnabled(enabled);
+    try {
+      localStorage.setItem('audioEnabled', JSON.stringify(enabled));
+    } catch (error) {
+      console.warn('Failed to save audio setting:', error);
+    }
+  }, []);
 
   // Cores litúrgicas para estilização
   const liturgicalColors = {
@@ -122,21 +157,28 @@ const LiturgiaApp = () => {
   // Notification functionality
   const requestNotificationPermission = async () => {
     if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        setNotificationsEnabled(true);
-        scheduleNotification();
-        alert('Notificações ativadas! Você receberá lembretes da liturgia diária.');
-      } else {
-        alert('Permissão para notificações negada.');
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          setNotificationsEnabled(true);
+          scheduleNotification();
+          alert('Notificações ativadas! Você receberá lembretes da liturgia diária.');
+        } else {
+          alert('Permissão para notificações negada.');
+        }
+      } catch (error) {
+        console.error('Erro ao solicitar permissão de notificação:', error);
+        alert('Erro ao solicitar permissão para notificações.');
       }
     } else {
       alert('Seu navegador não suporta notificações.');
     }
   };
 
-  const scheduleNotification = () => {
-    if ('serviceWorker' in navigator && notificationsEnabled) {
+  const scheduleNotification = useCallback(() => {
+    if (!notificationsEnabled) return;
+    
+    try {
       const [hours, minutes] = notificationTime.split(':');
       const now = new Date();
       const notificationDate = new Date();
@@ -149,19 +191,23 @@ const LiturgiaApp = () => {
       const timeUntilNotification = notificationDate.getTime() - now.getTime();
       
       setTimeout(() => {
-        new Notification('Liturgia Diária 🙏', {
-          body: 'Hora de conferir a liturgia de hoje!',
-          icon: '/icons/icon-192.png',
-          badge: '/icons/icon-192.png',
-          tag: 'liturgia-daily'
-        });
-        scheduleNotification(); // Schedule next day
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Liturgia Diária 🙏', {
+            body: 'Hora de conferir a liturgia de hoje!',
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png',
+            tag: 'liturgia-daily'
+          });
+          scheduleNotification(); // Schedule next day
+        }
       }, timeUntilNotification);
+    } catch (error) {
+      console.error('Erro ao agendar notificação:', error);
     }
-  };
+  }, [notificationsEnabled, notificationTime]);
 
   // Audio functionality (Text-to-Speech)
-  const speakText = (text, sectionName) => {
+  const speakText = useCallback((text, sectionName) => {
     if (!audioEnabled || !('speechSynthesis' in window)) {
       alert('Seu navegador não suporta síntese de voz.');
       return;
@@ -178,32 +224,37 @@ const LiturgiaApp = () => {
       speechSynthesis.cancel();
     }
 
-    const cleanText = text.replace(/<[^>]*>/g, '').replace(/\d+/g, '');
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    
-    utterance.lang = 'pt-BR';
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    utterance.volume = 0.8;
+    try {
+      const cleanText = text.replace(/<[^>]*>/g, '').replace(/\d+/g, '');
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      
+      utterance.lang = 'pt-BR';
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.volume = 0.8;
 
-    utterance.onstart = () => {
-      setIsPlaying(true);
-      setPlayingSection(sectionName);
-    };
+      utterance.onstart = () => {
+        setIsPlaying(true);
+        setPlayingSection(sectionName);
+      };
 
-    utterance.onend = () => {
-      setIsPlaying(false);
-      setPlayingSection(null);
-    };
+      utterance.onend = () => {
+        setIsPlaying(false);
+        setPlayingSection(null);
+      };
 
-    utterance.onerror = () => {
-      setIsPlaying(false);
-      setPlayingSection(null);
+      utterance.onerror = () => {
+        setIsPlaying(false);
+        setPlayingSection(null);
+        alert('Erro ao reproduzir áudio.');
+      };
+
+      speechSynthesis.speak(utterance);
+    } catch (error) {
+      console.error('Erro ao reproduzir áudio:', error);
       alert('Erro ao reproduzir áudio.');
-    };
-
-    speechSynthesis.speak(utterance);
-  };
+    }
+  }, [audioEnabled, isPlaying, playingSection]);
 
   // Share functionality
   const shareReading = async (title, text) => {
@@ -289,7 +340,7 @@ const LiturgiaApp = () => {
   };
 
   // Fetch liturgy data
-  const fetchLiturgia = async (date) => {
+  const fetchLiturgia = useCallback(async (date) => {
     try {
       setLoading(true);
       setError(null);
@@ -309,11 +360,11 @@ const LiturgiaApp = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchLiturgia(currentDate);
-  }, [currentDate]);
+  }, [currentDate, fetchLiturgia]);
 
   const fontSizeClasses = {
     sm: 'text-sm',
@@ -652,7 +703,7 @@ const LiturgiaApp = () => {
 
             {/* Audio toggle */}
             <button
-              onClick={() => setAudioEnabled(!audioEnabled)}
+              onClick={() => updateAudioEnabled(!audioEnabled)}
               className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
               title={audioEnabled ? "Desativar áudio" : "Ativar áudio"}
             >
@@ -784,7 +835,7 @@ const LiturgiaApp = () => {
             <input
               type="time"
               value={notificationTime}
-              onChange={(e) => setNotificationTime(e.target.value)}
+              onChange={(e) => updateNotificationTime(e.target.value)}
               className={`w-full p-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
             />
           </div>
