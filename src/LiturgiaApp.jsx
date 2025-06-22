@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Calendar, Sun, Moon, Type, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, Wifi, WifiOff } from 'lucide-react';
+import { ChevronLeft, Calendar, Sun, Moon, Type, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, Wifi, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays } from 'lucide-react';
 
 const LiturgiaApp = () => {
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
@@ -13,12 +13,24 @@ const LiturgiaApp = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // PWA states integrados
+  // PWA states
   const [isOnline, setIsOnline] = useState(true);
   const [isInstallable, setIsInstallable] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  
+  // New features states
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentAudio, setCurrentAudio] = useState(null);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [playingSection, setPlayingSection] = useState(null);
 
-  // Cores litúrgicas para estilização com melhor contraste para cor branca
+  // Hook para usar o hatch.useStoredState
+  const { useStoredState } = hatch;
+  const [notificationTime, setNotificationTime] = useStoredState('notificationTime', '07:00');
+  const [audioEnabled, setAudioEnabled] = useStoredState('audioEnabled', true);
+
+  // Cores litúrgicas para estilização
   const liturgicalColors = {
     'Verde': { 
       primary: darkMode ? 'from-green-700 to-emerald-700' : 'from-green-600 to-emerald-600',
@@ -41,10 +53,14 @@ const LiturgiaApp = () => {
       text: darkMode ? 'text-pink-200' : 'text-pink-800'
     },
     'Branco': { 
-      // Melhor contraste para cor branca no tema claro
       primary: darkMode ? 'from-gray-600 to-slate-600' : 'from-slate-700 to-gray-800',
       accent: darkMode ? 'border-gray-500 bg-gray-800/30' : 'border-gray-400 bg-gray-100',
       text: darkMode ? 'text-gray-200' : 'text-gray-700'
+    },
+    'Dourado': {
+      primary: darkMode ? 'from-yellow-600 to-amber-600' : 'from-yellow-500 to-amber-500',
+      accent: darkMode ? 'border-yellow-500 bg-yellow-900/30' : 'border-yellow-300 bg-yellow-50',
+      text: darkMode ? 'text-yellow-200' : 'text-yellow-800'
     }
   };
 
@@ -53,42 +69,14 @@ const LiturgiaApp = () => {
     return liturgicalColors[cor] || liturgicalColors['Branco'];
   };
 
-  // Buscar dados da API real - CORRIGIDO BUG DA DATA
-  const fetchLiturgia = async (date) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // CORREÇÃO: Usar a data diretamente sem criar novo objeto Date
-      // que pode causar problemas de timezone
-      const [ano, mes, dia] = date.split('-');
-      
-      const response = await fetch(`https://liturgia.up.railway.app/v2/?dia=${dia}&mes=${mes}&ano=${ano}`);
-      
-      if (!response.ok) {
-        throw new Error('Erro ao carregar liturgia');
-      }
-      
-      const data = await response.json();
-      setLiturgiaData(data);
-    } catch (err) {
-      setError(err.message);
-      console.error('Erro ao buscar liturgia:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // PWA functionality integrada
+  // PWA functionality
   useEffect(() => {
-    // Handle online/offline status
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Handle install prompt
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -103,7 +91,6 @@ const LiturgiaApp = () => {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
-    // Check if already installed
     if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstallable(false);
     }
@@ -132,11 +119,202 @@ const LiturgiaApp = () => {
     }
   };
 
+  // Notification functionality
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setNotificationsEnabled(true);
+        scheduleNotification();
+        alert('Notificações ativadas! Você receberá lembretes da liturgia diária.');
+      } else {
+        alert('Permissão para notificações negada.');
+      }
+    } else {
+      alert('Seu navegador não suporta notificações.');
+    }
+  };
+
+  const scheduleNotification = () => {
+    if ('serviceWorker' in navigator && notificationsEnabled) {
+      const [hours, minutes] = notificationTime.split(':');
+      const now = new Date();
+      const notificationDate = new Date();
+      notificationDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      
+      if (notificationDate <= now) {
+        notificationDate.setDate(notificationDate.getDate() + 1);
+      }
+      
+      const timeUntilNotification = notificationDate.getTime() - now.getTime();
+      
+      setTimeout(() => {
+        new Notification('Liturgia Diária 🙏', {
+          body: 'Hora de conferir a liturgia de hoje!',
+          icon: '/icons/icon-192.png',
+          badge: '/icons/icon-192.png',
+          tag: 'liturgia-daily'
+        });
+        scheduleNotification(); // Schedule next day
+      }, timeUntilNotification);
+    }
+  };
+
+  // Audio functionality (Text-to-Speech)
+  const speakText = (text, sectionName) => {
+    if (!audioEnabled || !('speechSynthesis' in window)) {
+      alert('Seu navegador não suporta síntese de voz.');
+      return;
+    }
+
+    if (isPlaying && playingSection === sectionName) {
+      speechSynthesis.cancel();
+      setIsPlaying(false);
+      setPlayingSection(null);
+      return;
+    }
+
+    if (speechSynthesis.speaking) {
+      speechSynthesis.cancel();
+    }
+
+    const cleanText = text.replace(/<[^>]*>/g, '').replace(/\d+/g, '');
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    
+    utterance.lang = 'pt-BR';
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 0.8;
+
+    utterance.onstart = () => {
+      setIsPlaying(true);
+      setPlayingSection(sectionName);
+    };
+
+    utterance.onend = () => {
+      setIsPlaying(false);
+      setPlayingSection(null);
+    };
+
+    utterance.onerror = () => {
+      setIsPlaying(false);
+      setPlayingSection(null);
+      alert('Erro ao reproduzir áudio.');
+    };
+
+    speechSynthesis.speak(utterance);
+  };
+
+  // Share functionality
+  const shareReading = async (title, text) => {
+    const shareData = {
+      title: `Liturgia Diária - ${title}`,
+      text: `${title}\n\n${text.replace(/<[^>]*>/g, '').substring(0, 200)}...`,
+      url: window.location.href
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback: copy to clipboard
+        const textToCopy = `${shareData.title}\n\n${shareData.text}\n\n${shareData.url}`;
+        await navigator.clipboard.writeText(textToCopy);
+        alert('Texto copiado para a área de transferência!');
+      }
+    } catch (err) {
+      console.error('Erro ao compartilhar:', err);
+      alert('Erro ao compartilhar conteúdo.');
+    }
+  };
+
+  // Calendar functionality - Generate liturgical calendar
+  const generateLiturgicalCalendar = () => {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+    const daysInMonth = lastDayOfMonth.getDate();
+    const firstDayWeekday = firstDayOfMonth.getDay();
+
+    const days = [];
+    
+    // Empty cells for days before month starts
+    for (let i = 0; i < firstDayWeekday; i++) {
+      days.push(null);
+    }
+
+    // Days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(currentYear, currentMonth, day);
+      const dateString = date.toISOString().split('T')[0];
+      const isToday = dateString === currentDate;
+      const isSelected = dateString === selectedDate;
+
+      days.push({
+        day,
+        date: dateString,
+        isToday,
+        isSelected,
+        liturgicalSeason: getLiturgicalSeason(date)
+      });
+    }
+
+    return {
+      days,
+      monthName: firstDayOfMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+    };
+  };
+
+  const getLiturgicalSeason = (date) => {
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+
+    // Simplified liturgical seasons (more accurate calculation would need Easter date)
+    if ((month === 12 && day >= 3) || (month === 1 && day <= 13)) return 'Advento/Natal';
+    if (month === 2 || month === 3) return 'Quaresma';
+    if (month === 4) return 'Páscoa';
+    if (month >= 5 && month <= 11) return 'Tempo Comum';
+    return 'Tempo Comum';
+  };
+
+  const getSeasonColor = (season) => {
+    switch (season) {
+      case 'Advento/Natal': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'Quaresma': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'Páscoa': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      default: return 'bg-green-100 text-green-800 border-green-200';
+    }
+  };
+
+  // Fetch liturgy data
+  const fetchLiturgia = async (date) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const [ano, mes, dia] = date.split('-');
+      const response = await fetch(`https://liturgia.up.railway.app/v2/?dia=${dia}&mes=${mes}&ano=${ano}`);
+      
+      if (!response.ok) {
+        throw new Error('Erro ao carregar liturgia');
+      }
+      
+      const data = await response.json();
+      setLiturgiaData(data);
+    } catch (err) {
+      setError(err.message);
+      console.error('Erro ao buscar liturgia:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchLiturgia(currentDate);
   }, [currentDate]);
 
-  // Adicionado tamanho 2xl para fonte maior
   const fontSizeClasses = {
     sm: 'text-sm',
     base: 'text-base',
@@ -145,18 +323,14 @@ const LiturgiaApp = () => {
     '2xl': 'text-2xl'
   };
 
-  // Função para formatar texto com números de versículos estilizados
   const formatTextWithVerses = (text) => {
     if (!text) return null;
     
-    // Regex para encontrar números de versículos (ex: 1, 2, 15, etc.)
-    // Procura por números no início de parágrafos ou após pontos
     const verseRegex = /(\s|^)(\d{1,3})([^\d])/g;
     
     return text.split('\n').map((paragrafo, pIndex) => {
       if (!paragrafo.trim()) return null;
       
-      // Substituir números de versículos por spans estilizados
       const formattedParagraph = paragrafo.replace(verseRegex, (match, space, number, nextChar) => {
         return `${space}<sup class="text-xs opacity-70 font-medium">${number}</sup>${nextChar}`;
       });
@@ -171,7 +345,6 @@ const LiturgiaApp = () => {
     });
   };
 
-  // Seções dinâmicas baseadas nos dados disponíveis
   const getDynamicSections = () => {
     if (!liturgiaData) return [];
     
@@ -179,7 +352,6 @@ const LiturgiaApp = () => {
       { id: 'todas', name: 'Todas as Seções', icon: Book, available: true }
     ];
 
-    // Leituras
     if (liturgiaData.leituras?.primeiraLeitura?.length > 0) {
       sections.push({ id: 'primeiraLeitura', name: 'Primeira Leitura', icon: Book, available: true });
     }
@@ -196,17 +368,14 @@ const LiturgiaApp = () => {
       sections.push({ id: 'evangelho', name: 'Evangelho', icon: Cross, available: true });
     }
 
-    // Extras (leituras adicionais)
     if (liturgiaData.leituras?.extras?.length > 0) {
       sections.push({ id: 'extras', name: 'Leituras Extras', icon: Sparkles, available: true });
     }
 
-    // Orações
     if (liturgiaData.oracoes && Object.keys(liturgiaData.oracoes).length > 0) {
       sections.push({ id: 'oracoes', name: 'Orações', icon: Heart, available: true });
     }
 
-    // Antífonas
     if (liturgiaData.antifonas && Object.keys(liturgiaData.antifonas).length > 0) {
       sections.push({ id: 'antifonas', name: 'Antífonas', icon: Scroll, available: true });
     }
@@ -228,15 +397,41 @@ const LiturgiaApp = () => {
       <div key={sectionKey} className={`mb-8 ${activeSection !== 'todas' && activeSection !== sectionKey ? 'hidden' : ''}`}>
         {readings.map((reading, index) => (
           <div key={index} className={`mb-6 p-6 rounded-2xl border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} shadow-lg`}>
-            <div className="flex items-center gap-2 mb-4">
-              <h3 className={`text-xl font-bold ${getCurrentColor().text}`}>
-                {reading.titulo || sectionName}
-              </h3>
-              {readings.length > 1 && (
-                <span className={`text-xs px-2 py-1 rounded-full ${getCurrentColor().accent} ${getCurrentColor().text}`}>
-                  {reading.tipo || `Opção ${index + 1}`}
-                </span>
-              )}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <h3 className={`text-xl font-bold ${getCurrentColor().text}`}>
+                  {reading.titulo || sectionName}
+                </h3>
+                {readings.length > 1 && (
+                  <span className={`text-xs px-2 py-1 rounded-full ${getCurrentColor().accent} ${getCurrentColor().text}`}>
+                    {reading.tipo || `Opção ${index + 1}`}
+                  </span>
+                )}
+              </div>
+              
+              {/* Action buttons */}
+              <div className="flex items-center gap-2">
+                {audioEnabled && (
+                  <button
+                    onClick={() => speakText(reading.texto, `${sectionKey}-${index}`)}
+                    className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+                    title={playingSection === `${sectionKey}-${index}` && isPlaying ? "Pausar áudio" : "Reproduzir áudio"}
+                  >
+                    {playingSection === `${sectionKey}-${index}` && isPlaying ? 
+                      <Pause size={16} className="text-blue-600" /> : 
+                      <Play size={16} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+                    }
+                  </button>
+                )}
+                
+                <button
+                  onClick={() => shareReading(reading.titulo || sectionName, reading.texto)}
+                  className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+                  title="Compartilhar"
+                >
+                  <Share2 size={16} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+                </button>
+              </div>
             </div>
             
             {reading.referencia && (
@@ -274,9 +469,30 @@ const LiturgiaApp = () => {
           if (key === 'extras') {
             return value.map((extra, index) => (
               <div key={`extra-${index}`} className={`mb-4 p-4 rounded-xl border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-                <h4 className={`font-semibold mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  {extra.titulo}
-                </h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className={`font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                    {extra.titulo}
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    {audioEnabled && (
+                      <button
+                        onClick={() => speakText(extra.texto, `prayer-extra-${index}`)}
+                        className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+                      >
+                        {playingSection === `prayer-extra-${index}` && isPlaying ? 
+                          <Pause size={14} className="text-blue-600" /> : 
+                          <Play size={14} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+                        }
+                      </button>
+                    )}
+                    <button
+                      onClick={() => shareReading(extra.titulo, extra.texto)}
+                      className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+                    >
+                      <Share2 size={14} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+                    </button>
+                  </div>
+                </div>
                 <div className={`${fontSizeClasses[fontSize]} leading-relaxed ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
                   {formatTextWithVerses(extra.texto)}
                 </div>
@@ -285,9 +501,30 @@ const LiturgiaApp = () => {
           } else {
             return (
               <div key={key} className={`mb-4 p-4 rounded-xl border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-                <h4 className={`font-semibold mb-2 capitalize ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
-                </h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className={`font-semibold capitalize ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                    {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    {audioEnabled && (
+                      <button
+                        onClick={() => speakText(value, `prayer-${key}`)}
+                        className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+                      >
+                        {playingSection === `prayer-${key}` && isPlaying ? 
+                          <Pause size={14} className="text-blue-600" /> : 
+                          <Play size={14} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+                        }
+                      </button>
+                    )}
+                    <button
+                      onClick={() => shareReading(key, value)}
+                      className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+                    >
+                      <Share2 size={14} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+                    </button>
+                  </div>
+                </div>
                 <div className={`${fontSizeClasses[fontSize]} leading-relaxed ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
                   {formatTextWithVerses(value)}
                 </div>
@@ -307,9 +544,30 @@ const LiturgiaApp = () => {
         <h3 className={`text-xl font-bold mb-4 ${getCurrentColor().text}`}>Antífonas</h3>
         {Object.entries(liturgiaData.antifonas).map(([key, value]) => (
           <div key={key} className={`mb-4 p-4 rounded-xl border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-            <h4 className={`font-semibold mb-2 capitalize ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-              {key}
-            </h4>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className={`font-semibold capitalize ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                {key}
+              </h4>
+              <div className="flex items-center gap-2">
+                {audioEnabled && (
+                  <button
+                    onClick={() => speakText(value, `antiphon-${key}`)}
+                    className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+                  >
+                    {playingSection === `antiphon-${key}` && isPlaying ? 
+                      <Pause size={14} className="text-blue-600" /> : 
+                      <Play size={14} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+                    }
+                  </button>
+                )}
+                <button
+                  onClick={() => shareReading(key, value)}
+                  className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+                >
+                  <Share2 size={14} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+                </button>
+              </div>
+            </div>
             <div className={`${fontSizeClasses[fontSize]} leading-relaxed ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
               {formatTextWithVerses(value)}
             </div>
@@ -350,6 +608,7 @@ const LiturgiaApp = () => {
 
   const sections = getDynamicSections();
   const currentColor = getCurrentColor();
+  const calendar = generateLiturgicalCalendar();
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 to-indigo-100'}`}>
@@ -374,12 +633,36 @@ const LiturgiaApp = () => {
           </div>
 
           <div className="flex items-center space-x-2">
-            {/* Status de conexão */}
+            {/* Connection status */}
             <div className={`p-2 rounded-full ${isOnline ? 'text-green-500' : 'text-red-500'}`}>
               {isOnline ? <Wifi size={16} /> : <WifiOff size={16} />}
             </div>
             
-            {/* Botão de instalação */}
+            {/* Notifications */}
+            <button
+              onClick={notificationsEnabled ? () => setNotificationsEnabled(false) : requestNotificationPermission}
+              className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+              title={notificationsEnabled ? "Desativar notificações" : "Ativar notificações"}
+            >
+              {notificationsEnabled ? 
+                <Bell size={16} className="text-blue-500" /> : 
+                <BellOff size={16} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
+              }
+            </button>
+
+            {/* Audio toggle */}
+            <button
+              onClick={() => setAudioEnabled(!audioEnabled)}
+              className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+              title={audioEnabled ? "Desativar áudio" : "Ativar áudio"}
+            >
+              {audioEnabled ? 
+                <Volume2 size={16} className="text-green-500" /> : 
+                <VolumeX size={16} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
+              }
+            </button>
+            
+            {/* Install button */}
             {isInstallable && (
               <button
                 onClick={installApp}
@@ -390,6 +673,15 @@ const LiturgiaApp = () => {
               </button>
             )}
             
+            {/* Calendar */}
+            <button
+              onClick={() => setShowCalendar(!showCalendar)}
+              className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+            >
+              <CalendarDays size={20} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
+            </button>
+
+            {/* Date picker */}
             <button
               onClick={() => setShowDatePicker(!showDatePicker)}
               className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
@@ -397,6 +689,7 @@ const LiturgiaApp = () => {
               <Calendar size={20} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
             </button>
             
+            {/* Dark mode */}
             <button
               onClick={() => setDarkMode(!darkMode)}
               className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
@@ -404,6 +697,7 @@ const LiturgiaApp = () => {
               {darkMode ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} className="text-gray-700" />}
             </button>
 
+            {/* Font size */}
             <button
               onClick={() => {
                 const sizes = ['sm', 'base', 'lg', 'xl', '2xl'];
@@ -418,6 +712,57 @@ const LiturgiaApp = () => {
           </div>
         </div>
 
+        {/* Calendar view */}
+        {showCalendar && (
+          <div className={`p-4 border-t ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+            <h4 className={`font-bold mb-3 text-center ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              {calendar.monthName}
+            </h4>
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
+                <div key={day} className={`p-2 text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {day}
+                </div>
+              ))}
+              {calendar.days.map((day, index) => (
+                <div key={index} className="aspect-square">
+                  {day ? (
+                    <button
+                      onClick={() => {
+                        setCurrentDate(day.date);
+                        setShowCalendar(false);
+                      }}
+                      className={`w-full h-full rounded-lg text-xs font-medium transition-colors ${
+                        day.isToday
+                          ? `bg-gradient-to-r ${currentColor.primary} text-white`
+                          : day.isSelected
+                          ? `border-2 ${currentColor.accent} ${currentColor.text}`
+                          : darkMode
+                          ? 'hover:bg-gray-700 text-gray-200'
+                          : 'hover:bg-gray-100 text-gray-700'
+                      } ${getSeasonColor(day.liturgicalSeason)}`}
+                    >
+                      {day.day}
+                    </button>
+                  ) : (
+                    <div></div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 text-xs text-center">
+              <div className={`inline-flex items-center gap-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                <div className="w-3 h-3 bg-purple-100 border border-purple-200 rounded"></div>
+                <span>Advento/Quaresma</span>
+                <div className="w-3 h-3 bg-yellow-100 border border-yellow-200 rounded ml-2"></div>
+                <span>Páscoa</span>
+                <div className="w-3 h-3 bg-green-100 border border-green-200 rounded ml-2"></div>
+                <span>Tempo Comum</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Date Picker */}
         {showDatePicker && (
           <div className={`p-4 border-t ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
@@ -430,7 +775,22 @@ const LiturgiaApp = () => {
           </div>
         )}
 
-        {/* Menu de navegação */}
+        {/* Notification Settings */}
+        {notificationsEnabled && (
+          <div className={`p-4 border-t ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+            <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+              Horário do lembrete diário:
+            </label>
+            <input
+              type="time"
+              value={notificationTime}
+              onChange={(e) => setNotificationTime(e.target.value)}
+              className={`w-full p-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            />
+          </div>
+        )}
+
+        {/* Navigation menu */}
         {showMenu && (
           <div className={`p-4 border-t ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
             <div className="grid grid-cols-2 gap-2">
@@ -464,7 +824,7 @@ const LiturgiaApp = () => {
 
       {/* Content */}
       <div className="p-4 pb-20">
-        {/* Informações da liturgia */}
+        {/* Liturgy information */}
         <div className={`p-6 rounded-2xl mb-6 bg-gradient-to-r ${currentColor.primary} text-white shadow-xl`}>
           <h2 className="text-xl font-bold mb-2">{liturgiaData?.liturgia}</h2>
           <div className="flex flex-wrap gap-4 text-sm opacity-90">
@@ -473,7 +833,7 @@ const LiturgiaApp = () => {
           </div>
         </div>
 
-        {/* Conteúdo das seções */}
+        {/* Section content */}
         <div className="space-y-6">
           {liturgiaData?.leituras?.primeiraLeitura && renderMultipleReadings(liturgiaData.leituras.primeiraLeitura, 'primeiraLeitura', 'Primeira Leitura')}
           {liturgiaData?.leituras?.segundaLeitura && renderMultipleReadings(liturgiaData.leituras.segundaLeitura, 'segundaLeitura', 'Segunda Leitura')}
