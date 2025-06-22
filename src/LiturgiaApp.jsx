@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays, Minus, Plus, Type, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays, Type, ToggleLeft, ToggleRight } from 'lucide-react';
 
 // Carregando fonte Gelasio do Google Fonts
 const loadGelasioFont = () => {
@@ -196,11 +196,11 @@ const LiturgiaApp = () => {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       
-      if (outcome === 'accepted') {
-        console.log('PWA instalado com sucesso');
-      } else {
-        console.log('Instalação cancelada pelo usuário');
-      }
+      // if (outcome === 'accepted') {
+      //   // console.log('PWA instalado com sucesso');
+      // } else {
+      //   // console.log('Instalação cancelada pelo usuário');
+      // }
       
       setDeferredPrompt(null);
       setIsInstallable(false);
@@ -209,48 +209,48 @@ const LiturgiaApp = () => {
 
   // Notification functionality
   const requestNotificationPermission = async () => {
-    console.log('🔔 Solicitando permissão para notificações...');
+    // console.log('🔔 Solicitando permissão para notificações...');
     
     if (!('Notification' in window)) {
-      console.error('❌ Browser não suporta notificações');
+      // console.error('❌ Browser não suporta notificações');
       alert('Seu navegador não suporta notificações.');
       return;
     }
 
     try {
-      console.log('📋 Estado atual da permissão:', Notification.permission);
+      // console.log('📋 Estado atual da permissão:', Notification.permission);
       
       // Se já tem permissão, apenas ativar
       if (Notification.permission === 'granted') {
-        console.log('✅ Permissão já concedida');
+        // console.log('✅ Permissão já concedida');
         updateNotificationsEnabled(true);
         scheduleNotification();
         return;
       }
 
       // Solicitar permissão
-      console.log('🙋 Solicitando permissão...');
+      // console.log('🙋 Solicitando permissão...');
       const permission = await Notification.requestPermission();
-      console.log('📋 Nova permissão:', permission);
+      // console.log('📋 Nova permissão:', permission);
       
       if (permission === 'granted') {
-        console.log('✅ Permissão concedida com sucesso');
+        // console.log('✅ Permissão concedida com sucesso');
         updateNotificationsEnabled(true);
         
         // Teste imediato para confirmar funcionamento
         setTimeout(() => {
-          console.log('🧪 Fazendo teste imediato após permissão');
+          // console.log('🧪 Fazendo teste imediato após permissão');
           showNotification();
         }, 500);
         
         // Agendar normalmente
         scheduleNotification();
       } else {
-        console.warn('⚠️ Permissão negada:', permission);
+        // console.warn('⚠️ Permissão negada:', permission);
         alert('Permissão para notificações negada. Você pode habilitar nas configurações do navegador.');
       }
     } catch (error) {
-      console.error('❌ Erro ao solicitar permissão:', error);
+      // console.error('❌ Erro ao solicitar permissão:', error);
       alert('Erro ao solicitar permissão para notificações: ' + error.message);
     }
   };
@@ -269,22 +269,22 @@ const LiturgiaApp = () => {
   };
 
   const scheduleNotification = useCallback(() => {
-    console.log('🔧 [AGENDAMENTO] Iniciando processo de agendamento...');
-    console.log('🔧 [AGENDAMENTO] Estado atual:', {
-      notificationsEnabled,
-      notificationTime,
-      hasTimer: !!notificationTimer
-    });
+    // console.log('🔧 [AGENDAMENTO] Iniciando processo de agendamento...');
+    // console.log('🔧 [AGENDAMENTO] Estado atual:', {
+    //   notificationsEnabled,
+    //   notificationTime,
+    //   hasTimer: !!notificationTimer
+    // });
     
     if (!notificationsEnabled) {
-      console.log('🔕 [AGENDAMENTO] Notificações desabilitadas - não agendando');
+      // console.log('🔕 [AGENDAMENTO] Notificações desabilitadas - não agendando');
       return;
     }
     
     // Clear existing timer
     if (notificationTimer) {
       clearTimeout(notificationTimer);
-      console.log('⏹️ [AGENDAMENTO] Timer anterior cancelado:', notificationTimer);
+      // console.log('⏹️ [AGENDAMENTO] Timer anterior cancelado:', notificationTimer);
       setNotificationTimer(null);
     }
     
@@ -294,35 +294,35 @@ const LiturgiaApp = () => {
       const notificationDate = new Date();
       notificationDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
       
-      console.log('📋 [AGENDAMENTO] Dados do agendamento:', {
-        horaConfigurada: notificationTime,
-        horaAtual: now.toLocaleTimeString(),
-        dataNotificacao: notificationDate.toLocaleString()
-      });
+      // console.log('📋 [AGENDAMENTO] Dados do agendamento:', {
+      //   horaConfigurada: notificationTime,
+      //   horaAtual: now.toLocaleTimeString(),
+      //   dataNotificacao: notificationDate.toLocaleString()
+      // });
       
       // Se o horário já passou hoje, agendar para amanhã
       if (notificationDate <= now) {
         notificationDate.setDate(notificationDate.getDate() + 1);
-        console.log('📅 [AGENDAMENTO] Horário já passou hoje, agendando para amanhã');
-        console.log('📅 [AGENDAMENTO] Nova data: ', notificationDate.toLocaleString());
+        // console.log('📅 [AGENDAMENTO] Horário já passou hoje, agendando para amanhã');
+        // console.log('📅 [AGENDAMENTO] Nova data: ', notificationDate.toLocaleString());
       }
       
       const timeUntilNotification = notificationDate.getTime() - now.getTime();
       const minutesUntil = Math.round(timeUntilNotification / 1000 / 60);
       const hoursUntil = Math.round(minutesUntil / 60);
       
-      console.log(`📅 [AGENDAMENTO] Próxima notificação: ${notificationDate.toLocaleString()}`);
-      console.log(`⏰ [AGENDAMENTO] Tempo restante: ${minutesUntil} minutos (${hoursUntil} horas)`);
-      console.log(`⏰ [AGENDAMENTO] Milissegundos até disparo: ${timeUntilNotification}`);
+      // console.log(`📅 [AGENDAMENTO] Próxima notificação: ${notificationDate.toLocaleString()}`);
+      // console.log(`⏰ [AGENDAMENTO] Tempo restante: ${minutesUntil} minutos (${hoursUntil} horas)`);
+      // console.log(`⏰ [AGENDAMENTO] Milissegundos até disparo: ${timeUntilNotification}`);
       
       // Validar se o tempo é razoável (não muito longo que pode dar overflow)
       if (timeUntilNotification > 2147483647) { // Max setTimeout value
-        console.error('❌ [AGENDAMENTO] Tempo muito longo, reagendando para 24h');
+        // console.error('❌ [AGENDAMENTO] Tempo muito longo, reagendando para 24h');
         const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
         const newTime = tomorrow.getTime() - now.getTime();
         
         const timerId = setTimeout(() => {
-          console.log('🚨 [AGENDAMENTO] Timer de 24h executado, reagendando...');
+          // console.log('🚨 [AGENDAMENTO] Timer de 24h executado, reagendando...');
           scheduleNotification();
         }, newTime);
         
@@ -331,15 +331,15 @@ const LiturgiaApp = () => {
       }
       
       const timerId = setTimeout(() => {
-        console.log('🚨 [AGENDAMENTO] EXECUTANDO NOTIFICAÇÃO AUTOMÁTICA!');
-        console.log('🚨 [AGENDAMENTO] Horário atual:', new Date().toLocaleString());
-        console.log('🚨 [AGENDAMENTO] Timer disparado conforme planejado!');
+        // console.log('🚨 [AGENDAMENTO] EXECUTANDO NOTIFICAÇÃO AUTOMÁTICA!');
+        // console.log('🚨 [AGENDAMENTO] Horário atual:', new Date().toLocaleString());
+        // console.log('🚨 [AGENDAMENTO] Timer disparado conforme planejado!');
         
         // Chamar notificação marcando como automática
         showNotification(true);
         
         // Reagendar automaticamente para o próximo dia
-        console.log('🔄 [AGENDAMENTO] Reagendando para o próximo dia...');
+        // console.log('🔄 [AGENDAMENTO] Reagendando para o próximo dia...');
         setTimeout(() => {
           scheduleNotification();
         }, 5000); // Aguarda 5 segundos antes de reagendar
@@ -347,9 +347,9 @@ const LiturgiaApp = () => {
       }, timeUntilNotification);
       
       setNotificationTimer(timerId);
-      console.log(`✅ [AGENDAMENTO] Timer criado com sucesso!`);
-      console.log(`✅ [AGENDAMENTO] Timer ID: ${timerId}`);
-      console.log(`✅ [AGENDAMENTO] Será executado em: ${new Date(now.getTime() + timeUntilNotification).toLocaleString()}`);
+      // console.log(`✅ [AGENDAMENTO] Timer criado com sucesso!`);
+      // console.log(`✅ [AGENDAMENTO] Timer ID: ${timerId}`);
+      // console.log(`✅ [AGENDAMENTO] Será executado em: ${new Date(now.getTime() + timeUntilNotification).toLocaleString()}`);
       
     } catch (error) {
       console.error('❌ [AGENDAMENTO] Erro durante agendamento:', error);
@@ -360,7 +360,7 @@ const LiturgiaApp = () => {
   const showNotification = async (isAutomatic = false) => {
     const timestamp = new Date().toLocaleString();
     const tipo = isAutomatic ? 'AUTOMÁTICA' : 'MANUAL';
-    console.log(`🔔 [NOTIFICAÇÃO ${tipo} - ${timestamp}] INICIANDO ENVIO`);
+    // console.log(`🔔 [NOTIFICAÇÃO ${tipo} - ${timestamp}] INICIANDO ENVIO`);
     
     try {
       // Verificar permissão primeiro
@@ -374,21 +374,21 @@ const LiturgiaApp = () => {
         return;
       }
 
-      console.log(`✅ [NOTIFICAÇÃO] Permissão OK, enviando liturgia...`);
+      // console.log(`✅ [NOTIFICAÇÃO] Permissão OK, enviando liturgia...`);
       
       const isPWA = window.matchMedia('(display-mode: standalone)').matches;
       const hasServiceWorker = 'serviceWorker' in navigator;
       
-      console.log('🔍 [NOTIFICAÇÃO] Ambiente:', {
-        standalone: isPWA,
-        serviceWorker: hasServiceWorker,
-        userAgent: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop'
-      });
+      // console.log('🔍 [NOTIFICAÇÃO] Ambiente:', {
+      //   standalone: isPWA,
+      //   serviceWorker: hasServiceWorker,
+      //   userAgent: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop'
+      // });
 
       // NOVA LÓGICA: Service Worker PRIMEIRO para PWA, Notification API para browser
       if (isPWA && hasServiceWorker) {
         // PWA: Usar APENAS Service Worker
-        console.log('⏰ [NOTIFICAÇÃO] Configurando timeout de 10s para detectar travamento...');
+        // console.log('⏰ [NOTIFICAÇÃO] Configurando timeout de 10s para detectar travamento...');
         
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => {
@@ -397,24 +397,24 @@ const LiturgiaApp = () => {
         });
         
         try {
-          console.log('📱 [NOTIFICAÇÃO] PWA detectado - usando Service Worker...');
+          // console.log('📱 [NOTIFICAÇÃO] PWA detectado - usando Service Worker...');
           
           // Verificar se há registrations ANTES de aguardar ready
-          console.log('🔍 [NOTIFICAÇÃO] Verificando registrations do Service Worker...');
+          // console.log('🔍 [NOTIFICAÇÃO] Verificando registrations do Service Worker...');
           const registrations = await navigator.serviceWorker.getRegistrations();
-          console.log('📋 [NOTIFICAÇÃO] Registrations encontradas:', registrations.length);
+          // console.log('📋 [NOTIFICAÇÃO] Registrations encontradas:', registrations.length);
           
           if (registrations.length === 0) {
             console.warn('⚠️ [NOTIFICAÇÃO] NENHUM SERVICE WORKER REGISTRADO!');
-            console.log('🔄 [NOTIFICAÇÃO] Tentando registrar Service Worker automaticamente...');
+            // console.log('🔄 [NOTIFICAÇÃO] Tentando registrar Service Worker automaticamente...');
             
             try {
               const newRegistration = await navigator.serviceWorker.register('/sw.js');
-              console.log('✅ [NOTIFICAÇÃO] Service Worker registrado com sucesso:', newRegistration);
+              // console.log('✅ [NOTIFICAÇÃO] Service Worker registrado com sucesso:', newRegistration);
               
               // Aguardar ativação
               await navigator.serviceWorker.ready;
-              console.log('✅ [NOTIFICAÇÃO] Service Worker ativado e pronto');
+              // console.log('✅ [NOTIFICAÇÃO] Service Worker ativado e pronto');
               
             } catch (swRegisterError) {
               console.error('❌ [NOTIFICAÇÃO] Falha ao registrar Service Worker:', swRegisterError);
@@ -422,13 +422,13 @@ const LiturgiaApp = () => {
             }
           }
           
-          console.log('🔍 [NOTIFICAÇÃO] Aguardando Service Worker ready...');
+          // console.log('🔍 [NOTIFICAÇÃO] Aguardando Service Worker ready...');
           const registration = await navigator.serviceWorker.ready;
-          console.log('✅ [NOTIFICAÇÃO] Service Worker ready obtido:', {
-            active: registration.active?.state,
-            scope: registration.scope,
-            updateViaCache: registration.updateViaCache
-          });
+          // console.log('✅ [NOTIFICAÇÃO] Service Worker ready obtido:', {
+          //   active: registration.active?.state,
+          //   scope: registration.scope,
+          //   updateViaCache: registration.updateViaCache
+          // });
           
           // Preparar dados da notificação
           const notificationOptions = {
@@ -447,8 +447,8 @@ const LiturgiaApp = () => {
             }
           };
           
-          console.log('📋 [NOTIFICAÇÃO] Tentando showNotification com opções:', notificationOptions);
-          console.log('🚀 [NOTIFICAÇÃO] ENVIANDO AGORA...');
+          // console.log('📋 [NOTIFICAÇÃO] Tentando showNotification com opções:', notificationOptions);
+          // console.log('🚀 [NOTIFICAÇÃO] ENVIANDO AGORA...');
           
           // Criar promise com timeout para detectar travamento
           let timeoutId;
@@ -466,11 +466,11 @@ const LiturgiaApp = () => {
           // IMPORTANTE: Cancelar timeout se chegou até aqui (sucesso)
           if (timeoutId) {
             clearTimeout(timeoutId);
-            console.log('⏰ [NOTIFICAÇÃO] Timer de timeout cancelado - notificação enviada com sucesso');
+            // console.log('⏰ [NOTIFICAÇÃO] Timer de timeout cancelado - notificação enviada com sucesso');
           }
           
-          console.log(`✅ [NOTIFICAÇÃO] PWA ENVIADA COM SUCESSO!`);
-          console.log('📋 [NOTIFICAÇÃO] Confirmação de envio concluída');
+          // console.log(`✅ [NOTIFICAÇÃO] PWA ENVIADA COM SUCESSO!`);
+          // console.log('📋 [NOTIFICAÇÃO] Confirmação de envio concluída');
           
         } catch (pwaError) {
           console.error('❌ [NOTIFICAÇÃO] PWA Service Worker falhou:', pwaError);
@@ -486,11 +486,11 @@ const LiturgiaApp = () => {
             // Tentar diagnóstico adicional
             try {
               const registration = await navigator.serviceWorker.ready;
-              console.log('🔍 [NOTIFICAÇÃO] Status do Service Worker pós-timeout:', {
-                active: registration.active?.state,
-                installing: registration.installing?.state,
-                waiting: registration.waiting?.state
-              });
+              // console.log('🔍 [NOTIFICAÇÃO] Status do Service Worker pós-timeout:', {
+              //   active: registration.active?.state,
+              //   installing: registration.installing?.state,
+              //   waiting: registration.waiting?.state
+              // });
             } catch (diagError) {
               console.error('❌ [NOTIFICAÇÃO] Erro no diagnóstico:', diagError);
             }
@@ -498,7 +498,7 @@ const LiturgiaApp = () => {
           
           // Tentar versão mais simples como fallback
           try {
-            console.log('🔄 [NOTIFICAÇÃO] Tentando versão simplificada...');
+            // console.log('🔄 [NOTIFICAÇÃO] Tentando versão simplificada...');
             const registration = await navigator.serviceWorker.ready;
             
             await registration.showNotification('Liturgia Diária', {
@@ -506,7 +506,7 @@ const LiturgiaApp = () => {
               tag: 'liturgia-simple'
             });
             
-            console.log('✅ [NOTIFICAÇÃO] Versão simplificada funcionou!');
+            // console.log('✅ [NOTIFICAÇÃO] Versão simplificada funcionou!');
             
           } catch (simpleError) {
             console.error('❌ [NOTIFICAÇÃO] Versão simplificada também falhou:', simpleError);
@@ -517,7 +517,7 @@ const LiturgiaApp = () => {
       } else {
         // BROWSER: Tentar Notification API primeiro, Service Worker como fallback
         try {
-          console.log('🖥️ [NOTIFICAÇÃO] Browser detectado - usando Notification API...');
+          // console.log('🖥️ [NOTIFICAÇÃO] Browser detectado - usando Notification API...');
           
           const notification = new Notification('Liturgia Diária 🙏', {
             body: 'Hora de conferir a liturgia de hoje!',
@@ -535,24 +535,24 @@ const LiturgiaApp = () => {
           
           // Event listeners para debug
           notification.onclick = () => {
-            console.log('🔔 [NOTIFICAÇÃO] Browser - clique detectado');
+            // console.log('🔔 [NOTIFICAÇÃO] Browser - clique detectado');
             window.focus();
             notification.close();
           };
           
-          notification.onshow = () => {
-            console.log(`✅ [NOTIFICAÇÃO] BROWSER MOSTRADA COM SUCESSO`);
-            console.log('📋 [NOTIFICAÇÃO] Dados:', {
-              title: notification.title,
-              body: notification.body,
-              tag: notification.tag,
-              icon: notification.icon
-            });
-          };
+          // notification.onshow = () => {
+            // console.log(`✅ [NOTIFICAÇÃO] BROWSER MOSTRADA COM SUCESSO`);
+            // console.log('📋 [NOTIFICAÇÃO] Dados:', {
+            //   title: notification.title,
+            //   body: notification.body,
+            //   tag: notification.tag,
+            //   icon: notification.icon
+            // });
+          // };
           
-          notification.onerror = (error) => {
-            console.error(`❌ [NOTIFICAÇÃO] ERRO NO BROWSER:`, error);
-          };
+          // notification.onerror = (error) => {
+          //   console.error(`❌ [NOTIFICAÇÃO] ERRO NO BROWSER:`, error);
+          // };
 
           // Auto-close após 10 segundos
           setTimeout(() => {
@@ -560,12 +560,12 @@ const LiturgiaApp = () => {
           }, 10000);
 
         } catch (browserError) {
-          console.warn('⚠️ [NOTIFICAÇÃO] API falhou, tentando Service Worker:', browserError);
+          // console.warn('⚠️ [NOTIFICAÇÃO] API falhou, tentando Service Worker:', browserError);
           
           // Fallback: Service Worker para browsers que bloqueiam Notification API
           if (hasServiceWorker) {
             try {
-              console.log('📱 [NOTIFICAÇÃO] Fallback - usando Service Worker...');
+              // console.log('📱 [NOTIFICAÇÃO] Fallback - usando Service Worker...');
               const registration = await navigator.serviceWorker.ready;
               
               await registration.showNotification('Liturgia Diária 🙏', {
@@ -584,10 +584,10 @@ const LiturgiaApp = () => {
                 }
               });
               
-              console.log(`✅ [NOTIFICAÇÃO] FALLBACK ENVIADA COM SUCESSO!`);
+              // console.log(`✅ [NOTIFICAÇÃO] FALLBACK ENVIADA COM SUCESSO!`);
               
             } catch (fallbackError) {
-              console.error('❌ [NOTIFICAÇÃO] Fallback também falhou:', fallbackError);
+              // console.error('❌ [NOTIFICAÇÃO] Fallback também falhou:', fallbackError);
               throw fallbackError;
             }
           } else {
@@ -598,22 +598,22 @@ const LiturgiaApp = () => {
       
       // Reagendar para o próximo dia (apenas para notificações automáticas)
       if (notificationsEnabled && isAutomatic) {
-        console.log('🔄 [NOTIFICAÇÃO] Notificação automática enviada, reagendando para amanhã...');
+        // console.log('🔄 [NOTIFICAÇÃO] Notificação automática enviada, reagendando para amanhã...');
         setTimeout(() => {
-          console.log('🔄 [NOTIFICAÇÃO] Executando reagendamento pós-envio...');
+          // console.log('🔄 [NOTIFICAÇÃO] Executando reagendamento pós-envio...');
           scheduleNotification();
         }, 2000);
       } else if (isAutomatic) {
-        console.log('⚠️ [NOTIFICAÇÃO] Notificações foram desabilitadas durante execução automática');
+        // console.log('⚠️ [NOTIFICAÇÃO] Notificações foram desabilitadas durante execução automática');
       }
       
     } catch (error) {
-      console.error('❌ [NOTIFICAÇÃO] ERRO GERAL:', error);
-      console.error('❌ [NOTIFICAÇÃO] Stack:', error.stack);
+      // console.error('❌ [NOTIFICAÇÃO] ERRO GERAL:', error);
+      // console.error('❌ [NOTIFICAÇÃO] Stack:', error.stack);
       
       // Reagendar apenas se as notificações estão habilitadas e era automática
       if (notificationsEnabled && isAutomatic) {
-        console.log('🔄 [NOTIFICAÇÃO] Erro em notificação automática, reagendando...');
+        // console.log('🔄 [NOTIFICAÇÃO] Erro em notificação automática, reagendando...');
         setTimeout(() => {
           scheduleNotification();
         }, 5000); // Aguarda mais tempo em caso de erro
@@ -812,21 +812,21 @@ const LiturgiaApp = () => {
 
   // Schedule notification when enabled or time changes
   useEffect(() => {
-    console.log('🔧 [useEffect] Executando reagendamento automático...');
-    console.log('🔧 [useEffect] Dependências mudaram:', {
-      notificationsEnabled,
-      notificationTime
-    });
+    // console.log('🔧 [useEffect] Executando reagendamento automático...');
+    // console.log('🔧 [useEffect] Dependências mudaram:', {
+    //   notificationsEnabled,
+    //   notificationTime
+    // });
     
     if (notificationsEnabled) {
-      console.log('✅ [useEffect] Notificações habilitadas, executando scheduleNotification...');
+      // console.log('✅ [useEffect] Notificações habilitadas, executando scheduleNotification...');
       scheduleNotification();
     } else {
-      console.log('🔕 [useEffect] Notificações desabilitadas, limpando timer...');
+      // console.log('🔕 [useEffect] Notificações desabilitadas, limpando timer...');
       if (notificationTimer) {
         clearTimeout(notificationTimer);
         setNotificationTimer(null);
-        console.log('⏹️ [useEffect] Timer limpo');
+        // console.log('⏹️ [useEffect] Timer limpo');
       }
     }
   }, [notificationsEnabled, notificationTime, scheduleNotification]);
@@ -1186,13 +1186,13 @@ const LiturgiaApp = () => {
                 }`}
                 title="Diminuir texto"
               >
-                <Minus size={16} />
+                <Type size={12} />
               </button>
               
               {/* Type icon indicator */}
-              <div className={`p-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} title="Controles de tamanho do texto">
+              {/* <div className={`p-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} title="Controles de tamanho do texto">
                 <Type size={14} />
-              </div>
+              </div> */}
               
               <button
                 onClick={() => {
@@ -1210,7 +1210,7 @@ const LiturgiaApp = () => {
                 }`}
                 title="Aumentar texto"
               >
-                <Plus size={16} />
+                <Type size={16} />
               </button>
             </div>
           </div>
@@ -1332,8 +1332,8 @@ const LiturgiaApp = () => {
                   className={`transition-colors ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} rounded-full p-1`}
                 >
                   {notificationsEnabled ? 
-                    <ToggleRight size={20} className="text-blue-500" /> : 
-                    <ToggleLeft size={20} className={darkMode ? 'text-gray-400' : 'text-gray-500'} />
+                    <ToggleRight size={24} className="text-blue-500" /> : 
+                    <ToggleLeft size={24} className={darkMode ? 'text-gray-400' : 'text-gray-500'} />
                   }
                 </button>
               </div>
@@ -1368,7 +1368,7 @@ const LiturgiaApp = () => {
                     <VolumeX size={16} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
                   }
                   <span className={`text-sm ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    Áudio (Text-to-Speech)
+                    Áudio (Ler em voz alta)
                   </span>
                 </div>
                 <button
@@ -1376,8 +1376,8 @@ const LiturgiaApp = () => {
                   className={`transition-colors ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} rounded-full p-1`}
                 >
                   {audioEnabled ? 
-                    <ToggleRight size={20} className="text-green-500" /> : 
-                    <ToggleLeft size={20} className={darkMode ? 'text-gray-400' : 'text-gray-500'} />
+                    <ToggleRight size={24} className="text-green-500" /> : 
+                    <ToggleLeft size={24} className={darkMode ? 'text-gray-400' : 'text-gray-500'} />
                   }
                 </button>
               </div>
