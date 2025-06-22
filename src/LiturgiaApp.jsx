@@ -280,14 +280,14 @@ const LiturgiaApp = () => {
 
   const scheduleNotification = useCallback(() => {
     if (!notificationsEnabled) {
-      console.log('Notificações desabilitadas - não agendando');
+      console.log('🔕 [AGENDAMENTO] Notificações desabilitadas - não agendando');
       return;
     }
     
     // Clear existing timer
     if (notificationTimer) {
       clearTimeout(notificationTimer);
-      console.log('Timer anterior cancelado');
+      console.log('⏹️ [AGENDAMENTO] Timer anterior cancelado');
     }
     
     try {
@@ -303,45 +303,44 @@ const LiturgiaApp = () => {
       
       const timeUntilNotification = notificationDate.getTime() - now.getTime();
       
-      console.log(`📅 Agendando notificação para: ${notificationDate.toLocaleString()}`);
-      console.log(`⏰ Tempo até notificação: ${Math.round(timeUntilNotification / 1000 / 60)} minutos`);
-      console.log(`🔔 Timer ID será criado em breve...`);
+      console.log(`📅 [AGENDAMENTO] Próxima notificação: ${notificationDate.toLocaleString()}`);
+      console.log(`⏰ [AGENDAMENTO] Tempo restante: ${Math.round(timeUntilNotification / 1000 / 60)} minutos`);
       
       const timerId = setTimeout(() => {
-        console.log('🚨 Executando notificação agora!');
+        console.log('🚨 [AGENDAMENTO] Executando notificação automática!');
         showNotification();
       }, timeUntilNotification);
       
       setNotificationTimer(timerId);
-      console.log(`✅ Timer criado com ID: ${timerId}`);
+      console.log(`✅ [AGENDAMENTO] Timer criado: ${timerId}`);
       
     } catch (error) {
-      console.error('❌ Erro ao agendar notificação:', error);
+      console.error('❌ [AGENDAMENTO] Erro:', error);
     }
   }, [notificationsEnabled, notificationTime, notificationTimer]);
 
   const showNotification = async () => {
     const timestamp = new Date().toLocaleString();
-    console.log(`🔔 [${timestamp}] INICIANDO NOTIFICAÇÃO LITURGIA`);
+    console.log(`🔔 [NOTIFICAÇÃO - ${timestamp}] INICIANDO ENVIO`);
     
     try {
       // Verificar permissão primeiro
       if (!('Notification' in window)) {
-        console.error('❌ Browser não suporta notificações');
+        console.error('❌ [NOTIFICAÇÃO] Browser não suporta notificações');
         return;
       }
 
       if (Notification.permission !== 'granted') {
-        console.warn('⚠️ Permissão de notificação não concedida. Estado:', Notification.permission);
+        console.warn('⚠️ [NOTIFICAÇÃO] Permissão não concedida:', Notification.permission);
         return;
       }
 
-      console.log(`✅ [${timestamp}] Permissão OK, enviando notificação da LITURGIA DIÁRIA...`);
+      console.log(`✅ [NOTIFICAÇÃO] Permissão OK, enviando liturgia...`);
       
       const isPWA = window.matchMedia('(display-mode: standalone)').matches;
       const hasServiceWorker = 'serviceWorker' in navigator;
       
-      console.log('🔍 Ambiente:', {
+      console.log('🔍 [NOTIFICAÇÃO] Ambiente:', {
         standalone: isPWA,
         serviceWorker: hasServiceWorker,
         userAgent: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop'
@@ -351,7 +350,7 @@ const LiturgiaApp = () => {
       if (isPWA && hasServiceWorker) {
         // PWA: Usar APENAS Service Worker
         try {
-          console.log('📱 PWA detectado - usando Service Worker obrigatoriamente...');
+          console.log('📱 [NOTIFICAÇÃO] PWA detectado - usando Service Worker...');
           const registration = await navigator.serviceWorker.ready;
           
           await registration.showNotification('Liturgia Diária 🙏', {
@@ -374,8 +373,8 @@ const LiturgiaApp = () => {
             ]
           });
           
-          console.log(`✅ [${timestamp}] NOTIFICAÇÃO PWA ENVIADA VIA SERVICE WORKER`);
-          console.log('📋 Dados enviados:', {
+          console.log(`✅ [NOTIFICAÇÃO] PWA ENVIADA COM SUCESSO!`);
+          console.log('📋 [NOTIFICAÇÃO] Dados:', {
             title: 'Liturgia Diária 🙏',
             body: 'Hora de conferir a liturgia de hoje!',
             tag: 'liturgia-daily-pwa',
@@ -383,14 +382,14 @@ const LiturgiaApp = () => {
           });
           
         } catch (pwaError) {
-          console.error('❌ PWA Service Worker falhou:', pwaError);
+          console.error('❌ [NOTIFICAÇÃO] PWA Service Worker falhou:', pwaError);
           throw pwaError;
         }
         
       } else {
         // BROWSER: Tentar Notification API primeiro, Service Worker como fallback
         try {
-          console.log('🖥️ Browser detectado - tentando Notification API...');
+          console.log('🖥️ [NOTIFICAÇÃO] Browser detectado - usando Notification API...');
           
           const notification = new Notification('Liturgia Diária 🙏', {
             body: 'Hora de conferir a liturgia de hoje!',
@@ -408,14 +407,14 @@ const LiturgiaApp = () => {
           
           // Event listeners para debug
           notification.onclick = () => {
-            console.log('🔔 Notificação browser clicada');
+            console.log('🔔 [NOTIFICAÇÃO] Browser - clique detectado');
             window.focus();
             notification.close();
           };
           
           notification.onshow = () => {
-            console.log(`✅ [${timestamp}] NOTIFICAÇÃO BROWSER MOSTRADA COM SUCESSO`);
-            console.log('📋 Dados da notificação:', {
+            console.log(`✅ [NOTIFICAÇÃO] BROWSER MOSTRADA COM SUCESSO`);
+            console.log('📋 [NOTIFICAÇÃO] Dados:', {
               title: notification.title,
               body: notification.body,
               tag: notification.tag,
@@ -424,7 +423,7 @@ const LiturgiaApp = () => {
           };
           
           notification.onerror = (error) => {
-            console.error(`❌ [${timestamp}] ERRO NA NOTIFICAÇÃO BROWSER:`, error);
+            console.error(`❌ [NOTIFICAÇÃO] ERRO NO BROWSER:`, error);
           };
 
           // Auto-close após 10 segundos
@@ -433,12 +432,12 @@ const LiturgiaApp = () => {
           }, 10000);
 
         } catch (browserError) {
-          console.warn('⚠️ Notification API falhou, tentando Service Worker fallback:', browserError);
+          console.warn('⚠️ [NOTIFICAÇÃO] API falhou, tentando Service Worker:', browserError);
           
           // Fallback: Service Worker para browsers que bloqueiam Notification API
           if (hasServiceWorker) {
             try {
-              console.log('📱 Fallback - usando Service Worker...');
+              console.log('📱 [NOTIFICAÇÃO] Fallback - usando Service Worker...');
               const registration = await navigator.serviceWorker.ready;
               
               await registration.showNotification('Liturgia Diária 🙏', {
@@ -457,10 +456,10 @@ const LiturgiaApp = () => {
                 }
               });
               
-              console.log(`✅ [${timestamp}] NOTIFICAÇÃO FALLBACK ENVIADA VIA SERVICE WORKER`);
+              console.log(`✅ [NOTIFICAÇÃO] FALLBACK ENVIADA COM SUCESSO!`);
               
             } catch (fallbackError) {
-              console.error('❌ Service Worker fallback também falhou:', fallbackError);
+              console.error('❌ [NOTIFICAÇÃO] Fallback também falhou:', fallbackError);
               throw fallbackError;
             }
           } else {
@@ -469,20 +468,24 @@ const LiturgiaApp = () => {
         }
       }
       
-      // Reagendar para o próximo dia
-      console.log('🔄 Reagendando para amanhã...');
-      setTimeout(() => {
-        scheduleNotification();
-      }, 1000);
+      // Reagendar para o próximo dia (apenas para notificações automáticas)
+      if (notificationsEnabled) {
+        console.log('🔄 [NOTIFICAÇÃO] Reagendando para amanhã...');
+        setTimeout(() => {
+          scheduleNotification();
+        }, 1000);
+      }
       
     } catch (error) {
-      console.error('❌ Erro geral ao mostrar notificação:', error);
-      console.error('Stack trace:', error.stack);
+      console.error('❌ [NOTIFICAÇÃO] ERRO GERAL:', error);
+      console.error('❌ [NOTIFICAÇÃO] Stack:', error.stack);
       
-      // Ainda assim reagendar para o próximo dia
-      setTimeout(() => {
-        scheduleNotification();
-      }, 1000);
+      // Reagendar apenas se as notificações estão habilitadas
+      if (notificationsEnabled) {
+        setTimeout(() => {
+          scheduleNotification();
+        }, 1000);
+      }
     }
   };
 
@@ -1004,6 +1007,55 @@ const LiturgiaApp = () => {
               </button>
             )}
             
+            {/* Debug Controls - sempre visíveis */}
+            <button
+              onClick={() => {
+                console.log('='.repeat(60));
+                console.log('🧪 TESTE MANUAL DE NOTIFICAÇÃO');
+                console.log('='.repeat(60));
+                console.log('🔍 Debug - Permissão atual:', Notification.permission);
+                console.log('🔍 Debug - Notificações habilitadas:', notificationsEnabled);
+                console.log('🔍 Debug - Iniciando teste...');
+                showNotification();
+                console.log('='.repeat(60));
+              }}
+              className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700 bg-blue-600' : 'hover:bg-gray-100 bg-blue-500'} transition-colors`}
+              title="Testar Notificação"
+            >
+              <Bell size={16} className="text-white" />
+            </button>
+            
+            <button
+              onClick={() => {
+                console.log('='.repeat(60));
+                console.log('🔍 STATUS DEBUG COMPLETO');
+                console.log('='.repeat(60));
+                console.log('- Notification support:', 'Notification' in window);
+                console.log('- Permission:', Notification.permission);
+                console.log('- ServiceWorker support:', 'serviceWorker' in navigator);
+                console.log('- Notifications enabled:', notificationsEnabled);
+                console.log('- Current timer:', notificationTimer);
+                console.log('- Notification time:', notificationTime);
+                console.log('- PWA Mode:', window.matchMedia('(display-mode: standalone)').matches);
+                console.log('- User Agent:', navigator.userAgent);
+                console.log('- URL atual:', window.location.href);
+                console.log('- localStorage notificationsEnabled:', localStorage.getItem('notificationsEnabled'));
+                
+                // Verificar Service Worker ativo
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.ready.then(reg => {
+                    console.log('- Service Worker ativo:', reg.active?.scriptURL);
+                    console.log('- SW State:', reg.active?.state);
+                  });
+                }
+                console.log('='.repeat(60));
+              }}
+              className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700 bg-orange-600' : 'hover:bg-gray-100 bg-orange-500'} transition-colors`}
+              title="Debug Info"
+            >
+              <AlertCircle size={16} className="text-white" />
+            </button>
+
             {/* Calendar - apenas um calendário litúrgico */}
             <button
               onClick={() => setShowCalendar(!showCalendar)}
@@ -1202,50 +1254,9 @@ const LiturgiaApp = () => {
                     }}
                     className={`w-full p-2 rounded-lg border text-xs ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   />
-                  <div className="mt-2 space-y-1">
-                    <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      Próximo lembrete: às {notificationTime} {new Date().toISOString().split('T')[0] >= new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0') ? 'de amanhã' : 'de hoje'}
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          console.log('🧪 Teste de notificação iniciado');
-                          console.log('🔍 Debug - Permissão atual:', Notification.permission);
-                          console.log('🔍 Debug - Notificações habilitadas:', notificationsEnabled);
-                          showNotification();
-                        }}
-                        className={`text-xs px-2 py-1 rounded ${darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white transition-colors`}
-                      >
-                        Testar Agora
-                      </button>
-                      
-                      <button
-                        onClick={() => {
-                          console.log('🔍 STATUS DEBUG COMPLETO:');
-                          console.log('- Notification support:', 'Notification' in window);
-                          console.log('- Permission:', Notification.permission);
-                          console.log('- ServiceWorker support:', 'serviceWorker' in navigator);
-                          console.log('- Notifications enabled:', notificationsEnabled);
-                          console.log('- Current timer:', notificationTimer);
-                          console.log('- Notification time:', notificationTime);
-                          console.log('- PWA Mode:', window.matchMedia('(display-mode: standalone)').matches);
-                          console.log('- User Agent:', navigator.userAgent);
-                          console.log('- URL atual:', window.location.href);
-                          
-                          // Verificar Service Worker ativo
-                          if ('serviceWorker' in navigator) {
-                            navigator.serviceWorker.ready.then(reg => {
-                              console.log('- Service Worker ativo:', reg.active?.scriptURL);
-                              console.log('- SW State:', reg.active?.state);
-                            });
-                          }
-                        }}
-                        className={`text-xs px-2 py-1 rounded ${darkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-400 hover:bg-gray-500'} text-white transition-colors`}
-                      >
-                        Debug
-                      </button>
-                    </div>
-                  </div>
+                  <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Próximo lembrete: às {notificationTime} {new Date().toISOString().split('T')[0] >= new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0') ? 'de amanhã' : 'de hoje'}
+                  </p>
                 </div>
               )}
 
