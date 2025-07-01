@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays, Type, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays, Type, ToggleLeft, ToggleRight, ExternalLink } from 'lucide-react';
 
 // Carregando fonte Gelasio do Google Fonts
 const loadGelasioFont = () => {
@@ -11,8 +11,22 @@ const loadGelasioFont = () => {
   }
 };
 
+const getInitialDateInUTC3 = () => {
+  const now = new Date();
+  // Adjust to UTC-3: current UTC hour - 3 hours
+  // To handle this correctly, we can get UTC parts and then construct a new date
+  // or manipulate the date object carefully.
+  // For simplicity, let's adjust the date object by subtracting 3 hours.
+  now.setUTCHours(now.getUTCHours() - 3);
+  // Format to YYYY-MM-DD
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+  const day = String(now.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const LiturgiaApp = () => {
-  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [currentDate, setCurrentDate] = useState(getInitialDateInUTC3());
   const [selectedDate, setSelectedDate] = useState('');
   const [darkMode, setDarkMode] = useState(false);
   const [fontSize, setFontSize] = useState('base');
@@ -38,6 +52,7 @@ const LiturgiaApp = () => {
   const [notificationTime, setNotificationTime] = useState('07:00');
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [notificationTimer, setNotificationTimer] = useState(null);
+  const [vaticanNewsUrl, setVaticanNewsUrl] = useState('');
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -797,6 +812,12 @@ const LiturgiaApp = () => {
       
       const data = await response.json();
       setLiturgiaData(data);
+
+      // Construct Vatican News URL
+      const [year, month, day] = date.split('-');
+      const vaticanUrl = `https://www.vaticannews.va/pt/palavra-do-dia/${year}/${month}/${day}.html`;
+      setVaticanNewsUrl(vaticanUrl);
+
     } catch (err) {
       setError(err.message);
       console.error('Erro ao buscar liturgia:', err);
@@ -1407,6 +1428,22 @@ const LiturgiaApp = () => {
           {renderPrayers()}
           {renderAntiphons()}
         </div>
+
+        {/* Vatican News Link Button */}
+        {vaticanNewsUrl && (
+          <div className="mt-8 text-center">
+            <a
+              href={vaticanNewsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center justify-center px-6 py-3 rounded-lg text-white font-medium shadow-md hover:shadow-lg transition-shadow duration-300 bg-gradient-to-r ${currentColor.primary}`}
+              style={{ fontFamily: 'Inter, sans-serif' }}
+            >
+              <ExternalLink size={20} className="mr-2" />
+              Liturgia diária Vatican News
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
