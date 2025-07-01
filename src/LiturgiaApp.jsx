@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays, Type, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays, Type, ToggleLeft, ToggleRight, ExternalLink } from 'lucide-react';
 
 // Carregando fonte Gelasio do Google Fonts
 const loadGelasioFont = () => {
@@ -11,8 +11,17 @@ const loadGelasioFont = () => {
   }
 };
 
+const getInitialDateUTC3 = () => {
+  const now = new Date(); // Gets current instant
+  // To get the date string for UTC-3, we subtract 3 hours from the current UTC time,
+  // then convert that to an ISO string and take the date part.
+  // new Date().getTime() gives UTC milliseconds since epoch.
+  const dateObjectInUTCMinus3Timezone = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+  return dateObjectInUTCMinus3Timezone.toISOString().split('T')[0];
+};
+
 const LiturgiaApp = () => {
-  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [currentDate, setCurrentDate] = useState(getInitialDateUTC3());
   const [selectedDate, setSelectedDate] = useState('');
   const [darkMode, setDarkMode] = useState(false);
   const [fontSize, setFontSize] = useState('base');
@@ -1406,6 +1415,22 @@ const LiturgiaApp = () => {
           {liturgiaData?.leituras?.extras && renderMultipleReadings(liturgiaData.leituras.extras, 'extras', 'Leituras Extras')}
           {renderPrayers()}
           {renderAntiphons()}
+
+          {/* Vatican News Button */}
+          {liturgiaData && currentDate && (
+            <div className="mt-8 text-center">
+              <a
+                href={`https://www.vaticannews.va/pt/palavra-do-dia/${currentDate.substring(0, 4)}/${currentDate.substring(5, 7)}/${currentDate.substring(8, 10)}.html`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex items-center justify-center px-6 py-3 rounded-lg text-white font-semibold shadow-md hover:shadow-lg transition-shadow duration-300 bg-gradient-to-r ${currentColor.primary}`}
+                style={{ fontFamily: 'Inter, sans-serif' }}
+              >
+                <ExternalLink size={20} className="mr-2" />
+                Liturgia diária Vatican News
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>
