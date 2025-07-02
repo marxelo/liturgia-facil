@@ -1,4 +1,4 @@
-const CACHE_NAME = 'liturgia-v1';
+const CACHE_NAME = 'liturgia-v1.0.1';
 
 console.log('🔧 Service Worker carregado');
 
