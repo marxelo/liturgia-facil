@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays, Type, ToggleLeft, ToggleRight, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays, Type, ToggleLeft, ToggleRight, ExternalLink, RefreshCw } from 'lucide-react';
 
 // Carregando fonte Gelasio do Google Fonts
 const loadGelasioFont = () => {
