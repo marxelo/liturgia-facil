@@ -812,14 +812,20 @@ const LiturgiaApp = () => {
   const handleUpdate = () => {
     navigator.serviceWorker.getRegistration().then(registration => {
       if (registration && registration.waiting) {
-        // Listen for the controlling service worker changing
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          // Reload the page to use the new service worker
-          window.location.reload();
+        const waitingWorker = registration.waiting;
+        
+        // Add a listener for when the waiting worker's state changes.
+        // When it becomes "activated", we know it's safe to reload.
+        waitingWorker.addEventListener('statechange', event => {
+          if (event.target.state === 'activated') {
+            console.log('✅ Novo Service Worker ativado. Recarregando a página.');
+            window.location.reload();
+          }
         });
         
-        // Send a message to the waiting service worker to activate
-        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        // Send the message to the waiting service worker to trigger activation.
+        console.log('📤 Enviando comando SKIP_WAITING para o novo Service Worker.');
+        waitingWorker.postMessage({ type: 'SKIP_WAITING' });
       }
     });
   };
