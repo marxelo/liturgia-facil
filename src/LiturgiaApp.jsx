@@ -809,26 +809,46 @@ const LiturgiaApp = () => {
   }, []);
 
   // NEW: Function to trigger the update
-  const handleUpdate = () => {
-    navigator.serviceWorker.getRegistration().then(registration => {
-      if (registration && registration.waiting) {
-        const waitingWorker = registration.waiting;
-        
-        // Add a listener for when the waiting worker's state changes.
-        // When it becomes "activated", we know it's safe to reload.
-        waitingWorker.addEventListener('statechange', event => {
-          if (event.target.state === 'activated') {
-            console.log('✅ Novo Service Worker ativado. Recarregando a página.');
-            window.location.reload();
-          }
-        });
-        
-        // Send the message to the waiting service worker to trigger activation.
-        console.log('📤 Enviando comando SKIP_WAITING para o novo Service Worker.');
-        waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+// src/LiturgiaApp.jsx
+
+const handleUpdate = () => {
+  navigator.serviceWorker.getRegistration().then(registration => {
+    // This is the check that is likely failing.
+    if (registration && registration.waiting) {
+      const waitingWorker = registration.waiting;
+      
+      console.log('✅ Found a waiting service worker. Proceeding with update.');
+      console.log('Waiting worker details:', waitingWorker);
+
+      waitingWorker.addEventListener('statechange', event => {
+        if (event.target.state === 'activated') {
+          console.log('✅ New Service Worker has been activated. Reloading page.');
+          window.location.reload();
+        }
+      });
+
+      console.log('📤 Sending SKIP_WAITING message to the waiting worker.');
+      waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+
+    } else {
+      // --- LOGGING BLOCK ---
+      // This block will run if no waiting worker is found.
+      console.error('❌ UPDATE FAILED: Could not find a waiting service worker.');
+      
+      if (registration) {
+        console.log('🔍 Current registration details:', registration);
+        console.log('   - Active worker:', registration.active);
+        console.log('   - Installing worker:', registration.installing);
+        console.log('   - Waiting worker:', registration.waiting);
+        alert('An error occurred during the update. A new version might have already been installed, or you may be offline. Please try reloading the page.');
+      } else {
+        console.error('致命的なエラー：Service Workerの登録が見つかりませんでした。');
+        alert('A critical error occurred: No service worker registration was found.');
       }
-    });
-  };
+      // --- END LOGGING BLOCK ---
+    }
+  });
+};
 
   // Fetch liturgy data
   const fetchLiturgia = useCallback(async (date) => {
