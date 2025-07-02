@@ -1,14 +1,10 @@
 const CACHE_NAME = 'liturgia-v1';
 
-console.log('🔧 Service Worker carregado - versão corrigida');
+console.log('🔧 Service Worker carregado');
 
 // Install - SEM cache.addAll() que causa falhas
 self.addEventListener('install', event => {
   console.log('⚡ Service Worker instalando...');
-  console.log('✅ Instalação simples - SEM cache problemático');
-  
-  // Pular waiting e ativar imediatamente
-  self.skipWaiting();
 });
 
 // Activate - garante controle imediato
@@ -37,6 +33,14 @@ self.addEventListener('activate', event => {
     })
   );
 });
+
+//  message listener to trigger skipWaiting.
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('⏭️ Recebido comando SKIP_WAITING. Ativando novo Service Worker.');
+    self.skipWaiting();
+  }
+})
 
 // Fetch - estratégia simples que funciona
 self.addEventListener('fetch', event => {
