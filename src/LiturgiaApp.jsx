@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays, Type, ToggleLeft, ToggleRight, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays, Type, ToggleLeft, ToggleRight, ExternalLink, RefreshCw } from 'lucide-react';
 
 // Carregando fonte Gelasio do Google Fonts
 const loadGelasioFont = () => {
@@ -42,6 +42,9 @@ const LiturgiaApp = () => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [playingSection, setPlayingSection] = useState(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
+
+  // state for the PWA update notification
+  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
 
   // Simple localStorage hook (replacing hatch dependency)
   const [notificationTime, setNotificationTime] = useState('07:00');
@@ -791,6 +794,36 @@ const LiturgiaApp = () => {
     return baseColors[season] || baseColors['Tempo Comum'];
   };
 
+    // NEW: Add a useEffect to handle the PWA update event
+  useEffect(() => {
+    const handleUpdateAvailable = () => {
+      console.log('🎉 Nova versão disponível! Mostrando banner de atualização.');
+      setShowUpdateBanner(true);
+    };
+
+    window.addEventListener('pwa-update-available', handleUpdateAvailable);
+
+    return () => {
+      window.removeEventListener('pwa-update-available', handleUpdateAvailable);
+    };
+  }, []);
+
+  // NEW: Function to trigger the update
+  const handleUpdate = () => {
+    navigator.serviceWorker.getRegistration().then(registration => {
+      if (registration && registration.waiting) {
+        // Listen for the controlling service worker changing
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          // Reload the page to use the new service worker
+          window.location.reload();
+        });
+        
+        // Send a message to the waiting service worker to activate
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+    });
+  };
+
   // Fetch liturgy data
   const fetchLiturgia = useCallback(async (date) => {
     try {
@@ -821,21 +854,14 @@ const LiturgiaApp = () => {
 
   // Schedule notification when enabled or time changes
   useEffect(() => {
-    // console.log('🔧 [useEffect] Executando reagendamento automático...');
-    // console.log('🔧 [useEffect] Dependências mudaram:', {
-    //   notificationsEnabled,
-    //   notificationTime
-    // });
     
     if (notificationsEnabled) {
-      // console.log('✅ [useEffect] Notificações habilitadas, executando scheduleNotification...');
       scheduleNotification();
     } else {
-      // console.log('🔕 [useEffect] Notificações desabilitadas, limpando timer...');
       if (notificationTimer) {
         clearTimeout(notificationTimer);
         setNotificationTimer(null);
-        // console.log('⏹️ [useEffect] Timer limpo');
+
       }
     }
   }, [notificationsEnabled, notificationTime, scheduleNotification]);
@@ -1122,6 +1148,24 @@ const LiturgiaApp = () => {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 to-indigo-100'}`}>
+     {/* NEW: PWA Update Available Banner */}
+      {showUpdateBanner && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-11/12 max-w-lg z-[100] p-4 bg-blue-600 text-white rounded-lg shadow-2xl flex items-center justify-between animate-fade-in-up">
+          <div className="flex items-center gap-3">
+            <RefreshCw size={24} className="animate-spin-slow" />
+            <div>
+              <h4 className="font-bold">Nova versão disponível!</h4>
+              <p className="text-sm opacity-90">Recarregue para aplicar a atualização.</p>
+            </div>
+          </div>
+          <button
+            onClick={handleUpdate}
+            className="px-4 py-2 bg-white text-blue-600 font-semibold rounded-md hover:bg-blue-100 transition-colors"
+          >
+            Atualizar
+          </button>
+        </div>
+      )}      
       {/* Header - Simplificado para mobile */}
       <div className={`sticky top-0 z-50 ${darkMode ? 'bg-gray-800/95' : 'bg-white/95'} backdrop-blur-md border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
         <div className="flex items-center justify-between p-4">
