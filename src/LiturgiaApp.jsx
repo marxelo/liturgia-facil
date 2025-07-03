@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays, Type, ToggleLeft, ToggleRight, ExternalLink, RefreshCw } from 'lucide-react';
-
+import { ChevronLeft, ChevronRight, Sun, Moon, Menu, Book, Heart, Music, Cross, Scroll, Sparkles, AlertCircle, Download, WifiOff, Bell, BellOff, Share2, Play, Pause, Volume2, VolumeX, CalendarDays, ToggleLeft, ToggleRight, ExternalLink } from 'lucide-react';
+import { TextDecreaseOutlined, TextIncreaseOutlined } from '@mui/icons-material';
 // Carregando fonte Gelasio do Google Fonts
 const loadGelasioFont = () => {
   const link = document.createElement('link');
@@ -11,6 +11,7 @@ const loadGelasioFont = () => {
   }
 };
 
+
 const getInitialDateUTC3 = () => {
   const now = new Date(); // Gets current instant
   // To get the date string for UTC-3, we subtract 3 hours from the current UTC time,
@@ -19,6 +20,7 @@ const getInitialDateUTC3 = () => {
   const dateObjectInUTCMinus3Timezone = new Date(now.getTime() - (3 * 60 * 60 * 1000));
   return dateObjectInUTCMinus3Timezone.toISOString().split('T')[0];
 };
+
 
 const LiturgiaApp = () => {
   const [currentDate, setCurrentDate] = useState(getInitialDateUTC3());
@@ -30,21 +32,18 @@ const LiturgiaApp = () => {
   const [liturgiaData, setLiturgiaData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // PWA states
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isInstallable, setIsInstallable] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  
+
   // New features states
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [playingSection, setPlayingSection] = useState(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
-
-  // state for the PWA update notification
-  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
 
   // Simple localStorage hook (replacing hatch dependency)
   const [notificationTime, setNotificationTime] = useState('07:00');
@@ -59,7 +58,7 @@ const LiturgiaApp = () => {
       const savedNotificationsEnabled = localStorage.getItem('notificationsEnabled');
       const savedFontSize = localStorage.getItem('fontSize');
       const savedDarkMode = localStorage.getItem('darkMode');
-      
+
       if (savedNotificationTime) {
         setNotificationTime(savedNotificationTime);
       }
@@ -132,27 +131,27 @@ const LiturgiaApp = () => {
 
   // Cores litúrgicas para estilização
   const liturgicalColors = {
-    'Verde': { 
+    'Verde': {
       primary: darkMode ? 'from-green-700 to-emerald-700' : 'from-green-600 to-emerald-600',
       accent: darkMode ? 'border-green-600 bg-green-900/30' : 'border-green-300 bg-green-50',
       text: darkMode ? 'text-green-200' : 'text-green-800'
     },
-    'Vermelho': { 
+    'Vermelho': {
       primary: darkMode ? 'from-red-700 to-rose-700' : 'from-red-600 to-rose-600',
       accent: darkMode ? 'border-red-600 bg-red-900/30' : 'border-red-300 bg-red-50',
       text: darkMode ? 'text-red-200' : 'text-red-800'
     },
-    'Roxo': { 
+    'Roxo': {
       primary: darkMode ? 'from-purple-700 to-violet-700' : 'from-purple-600 to-violet-600',
       accent: darkMode ? 'border-purple-600 bg-purple-900/30' : 'border-purple-300 bg-purple-50',
       text: darkMode ? 'text-purple-200' : 'text-purple-800'
     },
-    'Rosa': { 
+    'Rosa': {
       primary: darkMode ? 'from-pink-700 to-rose-700' : 'from-pink-600 to-rose-600',
       accent: darkMode ? 'border-pink-600 bg-pink-900/30' : 'border-pink-300 bg-pink-50',
       text: darkMode ? 'text-pink-200' : 'text-pink-800'
     },
-    'Branco': { 
+    'Branco': {
       primary: darkMode ? 'from-gray-600 to-slate-600' : 'from-slate-700 to-gray-800',
       accent: darkMode ? 'border-gray-500 bg-gray-800/30' : 'border-gray-400 bg-gray-100',
       text: darkMode ? 'text-gray-200' : 'text-gray-700'
@@ -207,13 +206,13 @@ const LiturgiaApp = () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      
+
       // if (outcome === 'accepted') {
       //   // console.log('PWA instalado com sucesso');
       // } else {
       //   // console.log('Instalação cancelada pelo usuário');
       // }
-      
+
       setDeferredPrompt(null);
       setIsInstallable(false);
     }
@@ -222,7 +221,7 @@ const LiturgiaApp = () => {
   // Notification functionality
   const requestNotificationPermission = async () => {
     // console.log('🔔 Solicitando permissão para notificações...');
-    
+
     if (!('Notification' in window)) {
       // console.error('❌ Browser não suporta notificações');
       alert('Seu navegador não suporta notificações.');
@@ -231,7 +230,7 @@ const LiturgiaApp = () => {
 
     try {
       // console.log('📋 Estado atual da permissão:', Notification.permission);
-      
+
       // Se já tem permissão, apenas ativar
       if (Notification.permission === 'granted') {
         // console.log('✅ Permissão já concedida');
@@ -244,17 +243,17 @@ const LiturgiaApp = () => {
       // console.log('🙋 Solicitando permissão...');
       const permission = await Notification.requestPermission();
       // console.log('📋 Nova permissão:', permission);
-      
+
       if (permission === 'granted') {
         // console.log('✅ Permissão concedida com sucesso');
         updateNotificationsEnabled(true);
-        
+
         // Teste imediato para confirmar funcionamento
         setTimeout(() => {
           // console.log('🧪 Fazendo teste imediato após permissão');
           showNotification();
         }, 500);
-        
+
         // Agendar normalmente
         scheduleNotification();
       } else {
@@ -287,93 +286,93 @@ const LiturgiaApp = () => {
     //   notificationTime,
     //   hasTimer: !!notificationTimer
     // });
-    
+
     if (!notificationsEnabled) {
       // console.log('🔕 [AGENDAMENTO] Notificações desabilitadas - não agendando');
       return;
     }
-    
+
     // Clear existing timer
     if (notificationTimer) {
       clearTimeout(notificationTimer);
       // console.log('⏹️ [AGENDAMENTO] Timer anterior cancelado:', notificationTimer);
       setNotificationTimer(null);
     }
-    
+
     try {
       const [hours, minutes] = notificationTime.split(':');
       const now = new Date();
       const notificationDate = new Date();
       notificationDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-      
+
       // console.log('📋 [AGENDAMENTO] Dados do agendamento:', {
       //   horaConfigurada: notificationTime,
       //   horaAtual: now.toLocaleTimeString(),
       //   dataNotificacao: notificationDate.toLocaleString()
       // });
-      
+
       // Se o horário já passou hoje, agendar para amanhã
       if (notificationDate <= now) {
         notificationDate.setDate(notificationDate.getDate() + 1);
         // console.log('📅 [AGENDAMENTO] Horário já passou hoje, agendando para amanhã');
         // console.log('📅 [AGENDAMENTO] Nova data: ', notificationDate.toLocaleString());
       }
-      
+
       const timeUntilNotification = notificationDate.getTime() - now.getTime();
       const minutesUntil = Math.round(timeUntilNotification / 1000 / 60);
       const hoursUntil = Math.round(minutesUntil / 60);
-      
+
       // console.log(`📅 [AGENDAMENTO] Próxima notificação: ${notificationDate.toLocaleString()}`);
       // console.log(`⏰ [AGENDAMENTO] Tempo restante: ${minutesUntil} minutos (${hoursUntil} horas)`);
       // console.log(`⏰ [AGENDAMENTO] Milissegundos até disparo: ${timeUntilNotification}`);
-      
+
       // Validar se o tempo é razoável (não muito longo que pode dar overflow)
       if (timeUntilNotification > 2147483647) { // Max setTimeout value
         // console.error('❌ [AGENDAMENTO] Tempo muito longo, reagendando para 24h');
         const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
         const newTime = tomorrow.getTime() - now.getTime();
-        
+
         const timerId = setTimeout(() => {
           // console.log('🚨 [AGENDAMENTO] Timer de 24h executado, reagendando...');
           scheduleNotification();
         }, newTime);
-        
+
         setNotificationTimer(timerId);
         return;
       }
-      
+
       const timerId = setTimeout(() => {
         // console.log('🚨 [AGENDAMENTO] EXECUTANDO NOTIFICAÇÃO AUTOMÁTICA!');
         // console.log('🚨 [AGENDAMENTO] Horário atual:', new Date().toLocaleString());
         // console.log('🚨 [AGENDAMENTO] Timer disparado conforme planejado!');
-        
+
         // Chamar notificação marcando como automática
         showNotification(true);
-        
+
         // Reagendar automaticamente para o próximo dia
         // console.log('🔄 [AGENDAMENTO] Reagendando para o próximo dia...');
         setTimeout(() => {
           scheduleNotification();
         }, 5000); // Aguarda 5 segundos antes de reagendar
-        
+
       }, timeUntilNotification);
-      
+
       setNotificationTimer(timerId);
       // console.log(`✅ [AGENDAMENTO] Timer criado com sucesso!`);
       // console.log(`✅ [AGENDAMENTO] Timer ID: ${timerId}`);
       // console.log(`✅ [AGENDAMENTO] Será executado em: ${new Date(now.getTime() + timeUntilNotification).toLocaleString()}`);
-      
+
     } catch (error) {
       console.error('❌ [AGENDAMENTO] Erro durante agendamento:', error);
       console.error('❌ [AGENDAMENTO] Stack:', error.stack);
     }
-  }, [notificationsEnabled, notificationTime, notificationTimer]);
+  }, [notificationsEnabled, notificationTime]);
 
   const showNotification = async (isAutomatic = false) => {
     const timestamp = new Date().toLocaleString();
     const tipo = isAutomatic ? 'AUTOMÁTICA' : 'MANUAL';
     // console.log(`🔔 [NOTIFICAÇÃO ${tipo} - ${timestamp}] INICIANDO ENVIO`);
-    
+
     try {
       // Verificar permissão primeiro
       if (!('Notification' in window)) {
@@ -387,10 +386,10 @@ const LiturgiaApp = () => {
       }
 
       // console.log(`✅ [NOTIFICAÇÃO] Permissão OK, enviando liturgia...`);
-      
+
       const isPWA = window.matchMedia('(display-mode: standalone)').matches;
       const hasServiceWorker = 'serviceWorker' in navigator;
-      
+
       // console.log('🔍 [NOTIFICAÇÃO] Ambiente:', {
       //   standalone: isPWA,
       //   serviceWorker: hasServiceWorker,
@@ -401,39 +400,39 @@ const LiturgiaApp = () => {
       if (isPWA && hasServiceWorker) {
         // PWA: Usar APENAS Service Worker
         // console.log('⏰ [NOTIFICAÇÃO] Configurando timeout de 10s para detectar travamento...');
-        
+
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => {
             reject(new Error('TIMEOUT: showNotification travou por mais de 10 segundos'));
           }, 10000);
         });
-        
+
         try {
           // console.log('📱 [NOTIFICAÇÃO] PWA detectado - usando Service Worker...');
-          
+
           // Verificar se há registrations ANTES de aguardar ready
           // console.log('🔍 [NOTIFICAÇÃO] Verificando registrations do Service Worker...');
           const registrations = await navigator.serviceWorker.getRegistrations();
           // console.log('📋 [NOTIFICAÇÃO] Registrations encontradas:', registrations.length);
-          
+
           if (registrations.length === 0) {
             console.warn('⚠️ [NOTIFICAÇÃO] NENHUM SERVICE WORKER REGISTRADO!');
             // console.log('🔄 [NOTIFICAÇÃO] Tentando registrar Service Worker automaticamente...');
-            
+
             try {
               const newRegistration = await navigator.serviceWorker.register('/sw.js');
               // console.log('✅ [NOTIFICAÇÃO] Service Worker registrado com sucesso:', newRegistration);
-              
+
               // Aguardar ativação
               await navigator.serviceWorker.ready;
               // console.log('✅ [NOTIFICAÇÃO] Service Worker ativado e pronto');
-              
+
             } catch (swRegisterError) {
               console.error('❌ [NOTIFICAÇÃO] Falha ao registrar Service Worker:', swRegisterError);
               throw new Error('Não foi possível registrar Service Worker - verifique se /sw.js existe');
             }
           }
-          
+
           // console.log('🔍 [NOTIFICAÇÃO] Aguardando Service Worker ready...');
           const registration = await navigator.serviceWorker.ready;
           // console.log('✅ [NOTIFICAÇÃO] Service Worker ready obtido:', {
@@ -441,7 +440,7 @@ const LiturgiaApp = () => {
           //   scope: registration.scope,
           //   updateViaCache: registration.updateViaCache
           // });
-          
+
           // Preparar dados da notificação
           const notificationOptions = {
             body: 'Hora de conferir a liturgia de hoje!',
@@ -458,43 +457,43 @@ const LiturgiaApp = () => {
               action: 'daily-reminder'
             }
           };
-          
+
           // console.log('📋 [NOTIFICAÇÃO] Tentando showNotification com opções:', notificationOptions);
           // console.log('🚀 [NOTIFICAÇÃO] ENVIANDO AGORA...');
-          
+
           // Criar promise com timeout para detectar travamento
           let timeoutId;
           const notificationPromise = registration.showNotification('Liturgia Diária 🙏', notificationOptions);
-          
+
           const timeoutPromise = new Promise((_, reject) => {
             timeoutId = setTimeout(() => {
               reject(new Error('TIMEOUT: showNotification travou por mais de 10 segundos'));
             }, 10000);
           });
-          
+
           // Race entre notificação e timeout
           await Promise.race([notificationPromise, timeoutPromise]);
-          
+
           // IMPORTANTE: Cancelar timeout se chegou até aqui (sucesso)
           if (timeoutId) {
             clearTimeout(timeoutId);
             // console.log('⏰ [NOTIFICAÇÃO] Timer de timeout cancelado - notificação enviada com sucesso');
           }
-          
+
           // console.log(`✅ [NOTIFICAÇÃO] PWA ENVIADA COM SUCESSO!`);
           // console.log('📋 [NOTIFICAÇÃO] Confirmação de envio concluída');
-          
+
         } catch (pwaError) {
           console.error('❌ [NOTIFICAÇÃO] PWA Service Worker falhou:', pwaError);
           console.error('❌ [NOTIFICAÇÃO] Tipo do erro:', pwaError.name);
           console.error('❌ [NOTIFICAÇÃO] Mensagem:', pwaError.message);
           console.error('❌ [NOTIFICAÇÃO] Stack:', pwaError.stack);
-          
+
           // Verificar se foi timeout
           if (pwaError.message.includes('TIMEOUT')) {
             console.error('⏰ [NOTIFICAÇÃO] DETECTADO TRAVAMENTO!');
             console.error('🔍 [NOTIFICAÇÃO] O showNotification() travou - possível problema com Service Worker');
-            
+
             // Tentar diagnóstico adicional
             try {
               const registration = await navigator.serviceWorker.ready;
@@ -507,30 +506,30 @@ const LiturgiaApp = () => {
               console.error('❌ [NOTIFICAÇÃO] Erro no diagnóstico:', diagError);
             }
           }
-          
+
           // Tentar versão mais simples como fallback
           try {
             // console.log('🔄 [NOTIFICAÇÃO] Tentando versão simplificada...');
             const registration = await navigator.serviceWorker.ready;
-            
+
             await registration.showNotification('Liturgia Diária', {
               body: 'Hora de conferir a liturgia de hoje!',
               tag: 'liturgia-simple'
             });
-            
+
             // console.log('✅ [NOTIFICAÇÃO] Versão simplificada funcionou!');
-            
+
           } catch (simpleError) {
             console.error('❌ [NOTIFICAÇÃO] Versão simplificada também falhou:', simpleError);
             throw pwaError; // Re-throw original error
           }
         }
-        
+
       } else {
         // BROWSER: Tentar Notification API primeiro, Service Worker como fallback
         try {
           // console.log('🖥️ [NOTIFICAÇÃO] Browser detectado - usando Notification API...');
-          
+
           const notification = new Notification('Liturgia Diária 🙏', {
             body: 'Hora de conferir a liturgia de hoje!',
             icon: '/icons/icon-192.png',
@@ -544,24 +543,24 @@ const LiturgiaApp = () => {
               url: window.location.href
             }
           });
-          
+
           // Event listeners para debug
           notification.onclick = () => {
             // console.log('🔔 [NOTIFICAÇÃO] Browser - clique detectado');
             window.focus();
             notification.close();
           };
-          
+
           // notification.onshow = () => {
-            // console.log(`✅ [NOTIFICAÇÃO] BROWSER MOSTRADA COM SUCESSO`);
-            // console.log('📋 [NOTIFICAÇÃO] Dados:', {
-            //   title: notification.title,
-            //   body: notification.body,
-            //   tag: notification.tag,
-            //   icon: notification.icon
-            // });
+          // console.log(`✅ [NOTIFICAÇÃO] BROWSER MOSTRADA COM SUCESSO`);
+          // console.log('📋 [NOTIFICAÇÃO] Dados:', {
+          //   title: notification.title,
+          //   body: notification.body,
+          //   tag: notification.tag,
+          //   icon: notification.icon
+          // });
           // };
-          
+
           // notification.onerror = (error) => {
           //   console.error(`❌ [NOTIFICAÇÃO] ERRO NO BROWSER:`, error);
           // };
@@ -573,13 +572,13 @@ const LiturgiaApp = () => {
 
         } catch (browserError) {
           // console.warn('⚠️ [NOTIFICAÇÃO] API falhou, tentando Service Worker:', browserError);
-          
+
           // Fallback: Service Worker para browsers que bloqueiam Notification API
           if (hasServiceWorker) {
             try {
               // console.log('📱 [NOTIFICAÇÃO] Fallback - usando Service Worker...');
               const registration = await navigator.serviceWorker.ready;
-              
+
               await registration.showNotification('Liturgia Diária 🙏', {
                 body: 'Hora de conferir a liturgia de hoje!',
                 icon: '/icons/icon-192.png',
@@ -595,9 +594,9 @@ const LiturgiaApp = () => {
                   action: 'daily-reminder'
                 }
               });
-              
+
               // console.log(`✅ [NOTIFICAÇÃO] FALLBACK ENVIADA COM SUCESSO!`);
-              
+
             } catch (fallbackError) {
               // console.error('❌ [NOTIFICAÇÃO] Fallback também falhou:', fallbackError);
               throw fallbackError;
@@ -607,7 +606,7 @@ const LiturgiaApp = () => {
           }
         }
       }
-      
+
       // Reagendar para o próximo dia (apenas para notificações automáticas)
       if (notificationsEnabled && isAutomatic) {
         // console.log('🔄 [NOTIFICAÇÃO] Notificação automática enviada, reagendando para amanhã...');
@@ -618,11 +617,11 @@ const LiturgiaApp = () => {
       } else if (isAutomatic) {
         // console.log('⚠️ [NOTIFICAÇÃO] Notificações foram desabilitadas durante execução automática');
       }
-      
+
     } catch (error) {
       // console.error('❌ [NOTIFICAÇÃO] ERRO GERAL:', error);
       // console.error('❌ [NOTIFICAÇÃO] Stack:', error.stack);
-      
+
       // Reagendar apenas se as notificações estão habilitadas e era automática
       if (notificationsEnabled && isAutomatic) {
         // console.log('🔄 [NOTIFICAÇÃO] Erro em notificação automática, reagendando...');
@@ -654,7 +653,7 @@ const LiturgiaApp = () => {
     try {
       const cleanText = text.replace(/<[^>]*>/g, '').replace(/\d+/g, '');
       const utterance = new SpeechSynthesisUtterance(cleanText);
-      
+
       utterance.lang = 'pt-BR';
       utterance.rate = 0.9;
       utterance.pitch = 1;
@@ -685,7 +684,7 @@ const LiturgiaApp = () => {
   const shareReading = async (title, text) => {
     // Remove HTML tags e pega texto completo
     const cleanText = text.replace(/<[^>]*>/g, '').trim();
-    
+
     const shareData = {
       title: `Liturgia Diária - ${title}`,
       text: `${title}\n\n${cleanText}`,
@@ -729,7 +728,7 @@ const LiturgiaApp = () => {
     const firstDayWeekday = firstDayOfMonth.getDay();
 
     const days = [];
-    
+
     // Empty cells for days before month starts
     for (let i = 0; i < firstDayWeekday; i++) {
       days.push(null);
@@ -777,92 +776,36 @@ const LiturgiaApp = () => {
 
   const getSeasonColor = (season) => {
     const baseColors = {
-      'Advento/Natal': darkMode 
-        ? 'bg-purple-800/40 text-purple-200 border-purple-600/50' 
+      'Advento/Natal': darkMode
+        ? 'bg-purple-800/40 text-purple-200 border-purple-600/50'
         : 'bg-purple-100 text-purple-800 border-purple-200',
-      'Quaresma': darkMode 
-        ? 'bg-purple-800/40 text-purple-200 border-purple-600/50' 
+      'Quaresma': darkMode
+        ? 'bg-purple-800/40 text-purple-200 border-purple-600/50'
         : 'bg-purple-100 text-purple-800 border-purple-200',
-      'Páscoa': darkMode 
-        ? 'bg-yellow-700/40 text-yellow-200 border-yellow-600/50' 
+      'Páscoa': darkMode
+        ? 'bg-yellow-700/40 text-yellow-200 border-yellow-600/50'
         : 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'Tempo Comum': darkMode 
-        ? 'bg-green-800/40 text-green-200 border-green-600/50' 
+      'Tempo Comum': darkMode
+        ? 'bg-green-800/40 text-green-200 border-green-600/50'
         : 'bg-green-100 text-green-800 border-green-200'
     };
-    
+
     return baseColors[season] || baseColors['Tempo Comum'];
   };
-
-    // NEW: Add a useEffect to handle the PWA update event
-  useEffect(() => {
-    const handleUpdateAvailable = () => {
-      console.log('🎉 Nova versão disponível! Mostrando banner de atualização.');
-      setShowUpdateBanner(true);
-    };
-
-    window.addEventListener('pwa-update-available', handleUpdateAvailable);
-
-    return () => {
-      window.removeEventListener('pwa-update-available', handleUpdateAvailable);
-    };
-  }, []);
-
-  // NEW: Function to trigger the update
-// src/LiturgiaApp.jsx
-
-const handleUpdate = () => {
-  navigator.serviceWorker.getRegistration().then(registration => {
-    // This is the check that is likely failing.
-    if (registration && registration.waiting) {
-      const waitingWorker = registration.waiting;
-      
-      console.log('✅ Found a waiting service worker. Proceeding with update.');
-      console.log('Waiting worker details:', waitingWorker);
-
-      waitingWorker.addEventListener('statechange', event => {
-        if (event.target.state === 'activated') {
-          console.log('✅ New Service Worker has been activated. Reloading page.');
-          window.location.reload();
-        }
-      });
-
-      console.log('📤 Sending SKIP_WAITING message to the waiting worker.');
-      waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-
-    } else {
-      // --- LOGGING BLOCK ---
-      // This block will run if no waiting worker is found.
-      console.error('❌ UPDATE FAILED: Could not find a waiting service worker.');
-      
-      if (registration) {
-        console.log('🔍 Current registration details:', registration);
-        console.log('   - Active worker:', registration.active);
-        console.log('   - Installing worker:', registration.installing);
-        console.log('   - Waiting worker:', registration.waiting);
-        alert('An error occurred during the update. A new version might have already been installed, or you may be offline. Please try reloading the page.');
-      } else {
-        console.error('致命的なエラー：Service Workerの登録が見つかりませんでした。');
-        alert('A critical error occurred: No service worker registration was found.');
-      }
-      // --- END LOGGING BLOCK ---
-    }
-  });
-};
 
   // Fetch liturgy data
   const fetchLiturgia = useCallback(async (date) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const [ano, mes, dia] = date.split('-');
       const response = await fetch(`https://liturgia.up.railway.app/v2/?dia=${dia}&mes=${mes}&ano=${ano}`);
-      
+
       if (!response.ok) {
         throw new Error('Erro ao carregar liturgia');
       }
-      
+
       const data = await response.json();
       setLiturgiaData(data);
     } catch (err) {
@@ -880,17 +823,24 @@ const handleUpdate = () => {
 
   // Schedule notification when enabled or time changes
   useEffect(() => {
-    
+    // console.log('🔧 [useEffect] Executando reagendamento automático...');
+    // console.log('🔧 [useEffect] Dependências mudaram:', {
+    //   notificationsEnabled,
+    //   notificationTime
+    // });
+
     if (notificationsEnabled) {
+      // console.log('✅ [useEffect] Notificações habilitadas, executando scheduleNotification...');
       scheduleNotification();
     } else {
+      // console.log('🔕 [useEffect] Notificações desabilitadas, limpando timer...');
       if (notificationTimer) {
         clearTimeout(notificationTimer);
         setNotificationTimer(null);
-
+        // console.log('⏹️ [useEffect] Timer limpo');
       }
     }
-  }, [notificationsEnabled, notificationTime, scheduleNotification]);
+  }, [notificationsEnabled, notificationTime]);
 
   const fontSizeClasses = {
     sm: 'text-sm',
@@ -902,19 +852,27 @@ const handleUpdate = () => {
 
   const formatTextWithVerses = (text) => {
     if (!text) return null;
-    
-    const verseRegex = /(\s|^)(\d{1,3})([^\d])/g;
-    
+
+    // Updated regex to match verse numbers in both scenarios:
+    // 1. Numbers preceded by whitespace or start of line (existing case)
+    // 2. Numbers preceded by non-alphanumeric characters (new case)
+    const verseRegex = /(\s|^|[^\w\s])(\d{1,3})([^\d])/g;
+
     return text.split('\n').map((paragrafo, pIndex) => {
       if (!paragrafo.trim()) return null;
-      
-      const formattedParagraph = paragrafo.replace(verseRegex, (match, space, number, nextChar) => {
-        return `${space}<sup class="text-xs opacity-70 font-medium">${number}</sup>${nextChar}`;
+
+      const formattedParagraph = paragrafo.replace(verseRegex, (match, precedingChar, number, nextChar) => {
+        // If preceded by non-alphanumeric (but not whitespace or start), add a space
+        if (precedingChar !== ' ' && precedingChar !== '' && /[^\w\s]/.test(precedingChar)) {
+          return `${precedingChar} <sup class="text-xs opacity-70 font-medium">${number}</sup>${nextChar}`;
+        }
+        // Otherwise, keep the original spacing
+        return `${precedingChar}<sup class="text-xs opacity-70 font-medium">${number}</sup>${nextChar}`;
       });
-      
+
       return (
-        <p 
-          key={pIndex} 
+        <p
+          key={pIndex}
           className="mb-4"
           dangerouslySetInnerHTML={{ __html: formattedParagraph }}
         />
@@ -924,7 +882,7 @@ const handleUpdate = () => {
 
   const getDynamicSections = () => {
     if (!liturgiaData) return [];
-    
+
     const sections = [
       { id: 'todas', name: 'Todas as Seções', icon: Book, available: true }
     ];
@@ -932,7 +890,7 @@ const handleUpdate = () => {
     if (liturgiaData.leituras?.primeiraLeitura?.length > 0) {
       sections.push({ id: 'primeiraLeitura', name: 'Primeira Leitura', icon: Book, available: true });
     }
-    
+
     if (liturgiaData.leituras?.segundaLeitura?.length > 0) {
       sections.push({ id: 'segundaLeitura', name: 'Segunda Leitura', icon: Book, available: true });
     }
@@ -978,7 +936,7 @@ const handleUpdate = () => {
                   </span>
                 )}
               </div>
-              
+
               {/* Action buttons */}
               <div className="flex items-center gap-2">
                 <button
@@ -986,12 +944,12 @@ const handleUpdate = () => {
                   className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
                   title={playingSection === `${sectionKey}-${index}` && isPlaying ? "Pausar áudio" : "Reproduzir áudio"}
                 >
-                  {playingSection === `${sectionKey}-${index}` && isPlaying ? 
-                    <Pause size={16} className="text-blue-600" /> : 
+                  {playingSection === `${sectionKey}-${index}` && isPlaying ?
+                    <Pause size={16} className="text-blue-600" /> :
                     <Play size={16} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
                   }
                 </button>
-                
+
                 <button
                   onClick={() => shareReading(reading.titulo || sectionName, reading.texto)}
                   className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
@@ -1001,7 +959,7 @@ const handleUpdate = () => {
                 </button>
               </div>
             </div>
-            
+
             {reading.referencia && (
               <p className={`text-sm font-medium mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'} italic`} style={{ fontFamily: 'Gelasio, serif' }}>
                 {reading.referencia}
@@ -1046,8 +1004,8 @@ const handleUpdate = () => {
                       onClick={() => speakText(extra.texto, `prayer-extra-${index}`)}
                       className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
                     >
-                      {playingSection === `prayer-extra-${index}` && isPlaying ? 
-                        <Pause size={14} className="text-blue-600" /> : 
+                      {playingSection === `prayer-extra-${index}` && isPlaying ?
+                        <Pause size={14} className="text-blue-600" /> :
                         <Play size={14} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
                       }
                     </button>
@@ -1076,8 +1034,8 @@ const handleUpdate = () => {
                       onClick={() => speakText(value, `prayer-${key}`)}
                       className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
                     >
-                      {playingSection === `prayer-${key}` && isPlaying ? 
-                        <Pause size={14} className="text-blue-600" /> : 
+                      {playingSection === `prayer-${key}` && isPlaying ?
+                        <Pause size={14} className="text-blue-600" /> :
                         <Play size={14} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
                       }
                     </button>
@@ -1117,8 +1075,8 @@ const handleUpdate = () => {
                   onClick={() => speakText(value, `antiphon-${key}`)}
                   className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
                 >
-                  {playingSection === `antiphon-${key}` && isPlaying ? 
-                    <Pause size={14} className="text-blue-600" /> : 
+                  {playingSection === `antiphon-${key}` && isPlaying ?
+                    <Pause size={14} className="text-blue-600" /> :
                     <Play size={14} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
                   }
                 </button>
@@ -1131,7 +1089,8 @@ const handleUpdate = () => {
               </div>
             </div>
             <div className={`${fontSizeClasses[fontSize]} leading-relaxed ${darkMode ? 'text-gray-100' : 'text-gray-800'}`} style={{ fontFamily: 'Gelasio, serif' }}>
-              {formatTextWithVerses(value)}
+              {/* {formatTextWithVerses(value)} */}
+              {value}
             </div>
           </div>
         ))}
@@ -1171,27 +1130,27 @@ const handleUpdate = () => {
   const sections = getDynamicSections();
   const currentColor = getCurrentColor();
   const calendar = generateLiturgicalCalendar();
+  const getNotificationDayText = () => {
+    // Get current time in UTC-3
+    // Get current time in UTC-3 (Brasília time)
+    const now = new Date();
+    // Convert local time to UTC-3 (add 3 hours to local time to get UTC, then represent as UTC-3)
+    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60 * 1000);
+    const utcMinus3 = new Date(utcTime - (3 * 60 * 60 * 1000));
+
+    const today = utcMinus3.toISOString().split('T')[0];
+
+    // Parse notification time in UTC-3
+    const [hours, minutes] = notificationTime.split(':').map(Number);
+    const notificationDate = new Date(utcMinus3);
+    notificationDate.setHours(hours, minutes, 0, 0);
+    // Compare dates
+    return notificationDate > utcMinus3 ? 'de hoje' : 'de amanhã';
+  };
+
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 to-indigo-100'}`}>
-     {/* NEW: PWA Update Available Banner */}
-      {showUpdateBanner && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-11/12 max-w-lg z-[100] p-4 bg-blue-600 text-white rounded-lg shadow-2xl flex items-center justify-between animate-fade-in-up">
-          <div className="flex items-center gap-3">
-            <RefreshCw size={24} className="animate-spin-slow" />
-            <div>
-              <h4 className="font-bold">Nova versão disponível!</h4>
-              <p className="text-sm opacity-90">Recarregue para aplicar a atualização.</p>
-            </div>
-          </div>
-          <button
-            onClick={handleUpdate}
-            className="px-4 py-2 bg-white text-blue-600 font-semibold rounded-md hover:bg-blue-100 transition-colors"
-          >
-            Atualizar
-          </button>
-        </div>
-      )}      
       {/* Header - Simplificado para mobile */}
       <div className={`sticky top-0 z-50 ${darkMode ? 'bg-gray-800/95' : 'bg-white/95'} backdrop-blur-md border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
         <div className="flex items-center justify-between p-4">
@@ -1219,7 +1178,7 @@ const handleUpdate = () => {
                 <WifiOff size={16} />
               </div>
             )}
-            
+
             {/* Install button */}
             {isInstallable && (
               <button
@@ -1238,7 +1197,7 @@ const handleUpdate = () => {
             >
               <CalendarDays size={20} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
             </button>
-            
+
             {/* Dark mode */}
             <button
               onClick={() => updateDarkMode(!darkMode)}
@@ -1249,6 +1208,7 @@ const handleUpdate = () => {
 
             {/* Font size controls */}
             <div className="flex items-center gap-1">
+
               <button
                 onClick={() => {
                   const sizes = ['sm', 'base', 'lg', 'xl', '2xl'];
@@ -1258,21 +1218,20 @@ const handleUpdate = () => {
                   }
                 }}
                 disabled={fontSize === 'sm'}
-                className={`p-2 rounded-full transition-colors ${
-                  fontSize === 'sm' 
-                    ? 'text-gray-400 cursor-not-allowed opacity-50' 
-                    : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
-                }`}
+                className={`p-2 rounded-full transition-colors ${fontSize === 'sm'
+                  ? 'text-gray-400 cursor-not-allowed opacity-50'
+                  : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
+                  }`}
                 title="Diminuir texto"
               >
-                <Type size={12} />
+                <TextDecreaseOutlined sx={{ fontSize: 24 }} />
               </button>
-              
+
               {/* Type icon indicator */}
               {/* <div className={`p-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} title="Controles de tamanho do texto">
                 <Type size={14} />
               </div> */}
-              
+
               <button
                 onClick={() => {
                   const sizes = ['sm', 'base', 'lg', 'xl', '2xl'];
@@ -1282,14 +1241,13 @@ const handleUpdate = () => {
                   }
                 }}
                 disabled={fontSize === '2xl'}
-                className={`p-2 rounded-full transition-colors ${
-                  fontSize === '2xl' 
-                    ? 'text-gray-400 cursor-not-allowed opacity-50'
-                    : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
-                }`}
+                className={`p-2 rounded-full transition-colors ${fontSize === '2xl'
+                  ? 'text-gray-400 cursor-not-allowed opacity-50'
+                  : darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
+                  }`}
                 title="Aumentar texto"
               >
-                <Type size={16} />
+                <TextIncreaseOutlined sx={{ fontSize: 24 }} />
               </button>
             </div>
           </div>
@@ -1305,11 +1263,11 @@ const handleUpdate = () => {
               >
                 <ChevronLeft size={20} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
               </button>
-              
+
               <h4 className={`font-bold text-center ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                 {calendar.monthName}
               </h4>
-              
+
               <button
                 onClick={() => navigateMonth(1)}
                 className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
@@ -1317,7 +1275,7 @@ const handleUpdate = () => {
                 <ChevronRight size={20} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
               </button>
             </div>
-            
+
             <div className="grid grid-cols-7 gap-1 text-center">
               {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
                 <div key={day} className={`p-2 text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -1332,15 +1290,14 @@ const handleUpdate = () => {
                         setCurrentDate(day.date);
                         setShowCalendar(false);
                       }}
-                      className={`w-full h-full rounded-lg text-xs font-medium transition-colors ${
-                        day.isToday
-                          ? `bg-gradient-to-r ${currentColor.primary} text-white`
-                          : day.isSelected
+                      className={`w-full h-full rounded-lg text-xs font-medium transition-colors ${day.isToday
+                        ? `bg-gradient-to-r ${currentColor.primary} text-white`
+                        : day.isSelected
                           ? `border-2 ${currentColor.accent} ${currentColor.text}`
                           : darkMode
-                          ? 'hover:bg-gray-700 text-gray-200'
-                          : 'hover:bg-gray-100 text-gray-700'
-                      } ${!day.isToday && !day.isSelected ? getSeasonColor(day.liturgicalSeason) : ''}`}
+                            ? 'hover:bg-gray-700 text-gray-200'
+                            : 'hover:bg-gray-100 text-gray-700'
+                        } ${!day.isToday && !day.isSelected ? getSeasonColor(day.liturgicalSeason) : ''}`}
                     >
                       {day.day}
                     </button>
@@ -1370,7 +1327,7 @@ const handleUpdate = () => {
             <div className="grid grid-cols-2 gap-2 mb-4">
               {sections.map((section) => {
                 const IconComponent = section.icon;
-                
+
                 return (
                   <button
                     key={section.id}
@@ -1378,11 +1335,10 @@ const handleUpdate = () => {
                       setActiveSection(section.id);
                       setShowMenu(false);
                     }}
-                    className={`p-3 rounded-xl border-2 transition-all ${
-                      activeSection === section.id
-                        ? `bg-gradient-to-r ${currentColor.primary} text-white border-transparent`
-                        : darkMode ? 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
-                    }`}
+                    className={`p-3 rounded-xl border-2 transition-all ${activeSection === section.id
+                      ? `bg-gradient-to-r ${currentColor.primary} text-white border-transparent`
+                      : darkMode ? 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                      }`}
                   >
                     <div className="flex flex-col items-center space-y-1">
                       <IconComponent size={16} />
@@ -1398,8 +1354,8 @@ const handleUpdate = () => {
               {/* Notificações */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {notificationsEnabled ? 
-                    <Bell size={16} className="text-blue-500" /> : 
+                  {notificationsEnabled ?
+                    <Bell size={16} className="text-blue-500" /> :
                     <BellOff size={16} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
                   }
                   <span className={`text-sm ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
@@ -1410,8 +1366,8 @@ const handleUpdate = () => {
                   onClick={toggleNotifications}
                   className={`transition-colors ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} rounded-full p-1`}
                 >
-                  {notificationsEnabled ? 
-                    <ToggleRight size={24} className="text-blue-500" /> : 
+                  {notificationsEnabled ?
+                    <ToggleRight size={24} className="text-blue-500" /> :
                     <ToggleLeft size={24} className={darkMode ? 'text-gray-400' : 'text-gray-500'} />
                   }
                 </button>
@@ -1434,7 +1390,7 @@ const handleUpdate = () => {
                     className={`w-full p-2 rounded-lg border text-xs ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   />
                   <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Próximo lembrete: às {notificationTime} {new Date().toISOString().split('T')[0] >= new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0') ? 'de amanhã' : 'de hoje'}
+                    Próximo lembrete: às {notificationTime} {getNotificationDayText()}
                   </p>
                 </div>
               )}
@@ -1442,8 +1398,8 @@ const handleUpdate = () => {
               {/* Áudio */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {audioEnabled ? 
-                    <Volume2 size={16} className="text-green-500" /> : 
+                  {audioEnabled ?
+                    <Volume2 size={16} className="text-green-500" /> :
                     <VolumeX size={16} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
                   }
                   <span className={`text-sm ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
@@ -1454,8 +1410,8 @@ const handleUpdate = () => {
                   onClick={() => updateAudioEnabled(!audioEnabled)}
                   className={`transition-colors ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} rounded-full p-1`}
                 >
-                  {audioEnabled ? 
-                    <ToggleRight size={24} className="text-green-500" /> : 
+                  {audioEnabled ?
+                    <ToggleRight size={24} className="text-green-500" /> :
                     <ToggleLeft size={24} className={darkMode ? 'text-gray-400' : 'text-gray-500'} />
                   }
                 </button>
