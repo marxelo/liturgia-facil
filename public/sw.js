@@ -1,4 +1,4 @@
-const CACHE_NAME = 'liturgia-v1.0.2';
+const CACHE_NAME = 'liturgia-v1.0.1';
 
 console.log('🔧 Service Worker carregado');
 
@@ -41,6 +41,13 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 })
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.action === 'skipWaiting') {
+    console.log('⏭️ Recebido comando skipWaiting. Ativando novo Service Worker.');
+    self.skipWaiting();
+  }
+});
 
 // Fetch - estratégia simples que funciona
 self.addEventListener('fetch', event => {

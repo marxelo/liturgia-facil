@@ -1,53 +1,56 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="utf-8" />
     <link rel="icon" href="/icons/icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    
+
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#3b82f6" />
-    <meta name="description" content="App católico para acompanhar a liturgia diária com leituras, orações e antífonas" />
+    <meta name="description"
+        content="App católico para acompanhar a liturgia diária com leituras, orações e antífonas" />
     <link rel="manifest" href="/manifest.json" />
-    
+
     <!-- Apple Touch Icon -->
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-    
+
     <!-- Apple PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Liturgia" />
-    
+
     <!-- Microsoft Tiles -->
     <meta name="msapplication-TileImage" content="/icons/icon-192.png" />
     <meta name="msapplication-TileColor" content="#3b82f6" />
-    
+
     <!-- SEO -->
     <meta name="keywords" content="liturgia, católica, missa, orações, leituras, evangelho, igreja" />
     <meta name="author" content="Liturgia Diária App" />
-    
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://liturgia-diaria.app/" />
     <meta property="og:title" content="Liturgia Diária Católica" />
     <meta property="og:description" content="App católico para acompanhar a liturgia diária" />
     <meta property="og:image" content="/icons/icon-512.png" />
-    
+
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://liturgia-diaria.app/" />
     <meta property="twitter:title" content="Liturgia Diária Católica" />
     <meta property="twitter:description" content="App católico para acompanhar a liturgia diária" />
     <meta property="twitter:image" content="/icons/icon-512.png" />
-    
+
     <title>Liturgia Diária Católica</title>
-    
+
     <!-- Preload Critical Resources -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        as="style" onload="this.onload=null;this.rel='stylesheet'">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <style>
         /* Loading screen */
         .loading-screen {
@@ -63,32 +66,34 @@
             z-index: 9999;
             transition: opacity 0.5s ease-out;
         }
-        
+
         .loading-screen.hidden {
             opacity: 0;
             pointer-events: none;
         }
-        
+
         .loading-spinner {
             width: 50px;
             height: 50px;
-            border: 3px solid rgba(255,255,255,0.3);
+            border: 3px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             border-top-color: white;
             animation: spin 1s ease-in-out infinite;
         }
-        
+
         .loading-text {
             color: white;
             margin-top: 20px;
             font-size: 18px;
             font-weight: 500;
         }
-        
+
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
-        
+
         /* Install prompt */
         .install-prompt {
             position: fixed;
@@ -98,18 +103,18 @@
             background: white;
             border-radius: 12px;
             padding: 16px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             z-index: 1000;
             transform: translateY(100px);
             opacity: 0;
             transition: all 0.3s ease-out;
         }
-        
+
         .install-prompt.show {
             transform: translateY(0);
             opacity: 1;
         }
-        
+
         .install-prompt .close-btn {
             position: absolute;
             top: 8px;
@@ -122,9 +127,10 @@
         }
     </style>
 </head>
+
 <body>
     <noscript>Você precisa habilitar JavaScript para usar este app.</noscript>
-    
+
     <!-- Loading Screen -->
     <div id="loading-screen" class="loading-screen">
         <div class="text-center">
@@ -132,10 +138,10 @@
             <div class="loading-text">Carregando Liturgia...</div>
         </div>
     </div>
-    
+
     <!-- App Root -->
     <div id="root"></div>
-    
+
     <!-- Install Prompt -->
     <div id="install-prompt" class="install-prompt">
         <button class="close-btn" onclick="hideInstallPrompt()">&times;</button>
@@ -150,7 +156,7 @@
             </button>
         </div>
     </div>
-    
+
     <script>
         // Hide loading screen when app loads
         window.addEventListener('load', () => {
@@ -158,26 +164,26 @@
                 document.getElementById('loading-screen').classList.add('hidden');
             }, 1000);
         });
-        
+
         // PWA Install Logic
         let deferredPrompt;
         const installPrompt = document.getElementById('install-prompt');
         const installBtn = document.getElementById('install-btn');
-        
+
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
             showInstallPrompt();
         });
-        
+
         function showInstallPrompt() {
             installPrompt.classList.add('show');
         }
-        
+
         function hideInstallPrompt() {
             installPrompt.classList.remove('show');
         }
-        
+
         installBtn.addEventListener('click', () => {
             hideInstallPrompt();
             if (deferredPrompt) {
@@ -190,22 +196,22 @@
                 });
             }
         });
-        
+
         // Register Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                     .then((registration) => {
                         console.log('SW registrado com sucesso:', registration.scope);
-                        
-                        // Check for updates
+
                         registration.addEventListener('updatefound', () => {
                             const newWorker = registration.installing;
                             newWorker.addEventListener('statechange', () => {
                                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // New content available, refresh to update
+                                    // New content available, prompt the user.
                                     if (confirm('Nova versão disponível. Atualizar agora?')) {
-                                        window.location.reload();
+                                        // Send a message to the new service worker to activate immediately.
+                                        newWorker.postMessage({ action: 'skipWaiting' });
                                     }
                                 }
                             });
@@ -214,19 +220,25 @@
                     .catch((registrationError) => {
                         console.log('SW registration failed:', registrationError);
                     });
+
+                // Add this event listener to reload the page after the new worker has taken control.
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    window.location.reload();
+                });
             });
         }
-        
+
         // Handle online/offline status
         window.addEventListener('online', () => {
             document.body.classList.remove('offline');
             console.log('Voltou online');
         });
-        
+
         window.addEventListener('offline', () => {
             document.body.classList.add('offline');
             console.log('Ficou offline');
         });
     </script>
 </body>
+
 </html>
